@@ -1,10 +1,18 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from st_supabase_connection import SupabaseConnection
+
+# Initialize connection.
+conn = st.connection("supabase",type=SupabaseConnection)
+
+# Perform query.
+rows = conn.query("*", table="iris", ttl="10m").execute()
+
 
 # Streamlit 앱 이름과 레이아웃 설정
 st.set_page_config(
-    page_title="Supabase 타이타닉 데이터 대시보드",
+    page_title="Supabase IRIS 데이터 대시보드",
     layout="wide",
     initial_sidebar_state="expanded"
 )
