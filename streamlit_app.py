@@ -1,188 +1,262 @@
 import streamlit as st
+from st_supabase_connection import SupabaseConnection
 import pandas as pd
 import plotly.express as px
-from st_supabase_connection import SupabaseConnection
+import plotly.graph_objects as go
 
-# Initialize connection.
-conn = st.connection("supabase",type=SupabaseConnection)
-
-# Perform query.
-rows = conn.query("*", table="iris", ttl="10m").execute()
-
-
-# Streamlit 앱 이름과 레이아웃 설정
+# 페이지 설정
 st.set_page_config(
-    page_title="Supabase IRIS 데이터 대시보드",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    page_title="Iris 데이터 대시보드",
+    page_icon="🌸",
+    layout="wide"
 )
 
-st.title("🚢 타이타닉호 생존자 분석 대시보드 (Supabase 연동)")
-st.caption("Streamlit의 st.connection과 secrets를 사용하여 Supabase PostgreSQL 데이터를 시각화합니다.")
+# 제목
+st.title("🌸 Iris 데이터 분석 대시보드")
+st.markdown("---")
 
-# ----------------------------------------------------
-# 1. 데이터베이스 연결 및 로드
-# ----------------------------------------------------
+# Supabase 연결
+@st.cache_resource
+def init_connection():
+    return st.connection("supabase", type=SupabaseConnection)
 
-# st.connection을 사용하여 secrets.toml의 [supabase] 연결 정보를 사용합니다.
-try:
-    # SQL 기반 데이터베이스 연결 설정
-    conn = st.connection("supabase", type="sql")
-except Exception as e:
-    st.error(f"⚠️ 데이터베이스 연결 실패! `.streamlit/secrets.toml` 파일과 Supabase 접속 정보를 확인해주세요. (에러: {e})")
-    st.stop()
-
-
-@st.cache_data(ttl=600)  # 데이터는 10분마다 새로 로드하도록 캐시 설정
+# 데이터 로드
+@st.cache_data(ttl=600)
 def load_data():
-    """Supabase에서 'titanic' 테이블의 모든 데이터를 로드하고 전처리합니다."""
-    try:
-        # conn.query()를 사용하여 SQL 쿼리를 실행합니다.
-        # 데이터베이스의 테이블명은 'titanic'으로 가정합니다.
-        df = conn.query("SELECT * FROM titanic", ttl=600)
-        # PostgreSQL은 기본적으로 컬럼명을 소문자로 반환합니다. 데이터 처리를 위해 통일
-        df.columns = df.columns.str.lower()
-        return df
-    except Exception as e:
-        st.error(f"테이블 'titanic' 로드 중 오류 발생. 테이블 이름 또는 권한을 확인해주세요. (에러: {e})")
-        return pd.DataFrame() # 빈 DataFrame 반환
+    conn = init_connection()
+    response = conn.table("iris").select("*").execute()
+    return pd.DataFrame(response.data)
 
-data = load_data()
+try:
+    # 데이터 로드
+    df = load_data()
+    
+    # 사이드바 - 필터
+    st.sidebar.header("📊 필터 옵션")
+    
+    # 종(species) 선택
+    species_list = df['species'].unique().tolist()
+    selected_species = st.sidebar.multiselect(
+        "품종 선택",
+        species_list,
+        default=species_list
+    )
+    
+    # 데이터 필터링
+    filtered_df = df[df['species'].isin(selected_species)]
+    
+    # 메트릭 표시
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("총 데이터 수", len(filtered_df))
+    with col2:
+        st.metric("품종 수", filtered_df['species'].nunique())
+    with col3:
+        st.metric("평균 꽃잎 길이", f"{filtered_df['petal_length'].mean():.2f} cm")
+    with col4:
+        st.metric("평균 꽃받침 길이", f"{filtered_df['sepal_length'].mean():.2f} cm")
+    
+    st.markdown("---")
+    
+    # 탭 생성
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["📈 산점도", "📊 히스토그램", "📉 박스플롯", "🔥 히트맵", "📋 데이터"])
+    
+    # 탭 1: 산점도
+    with tab1:
+        st.subheader("산점도 분석")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            x_axis = st.selectbox(
+                "X축 선택",
+                ["sepal_length", "sepal_width", "petal_length", "petal_width"],
+                key="scatter_x"
+            )
+        
+        with col2:
+            y_axis = st.selectbox(
+                "Y축 선택",
+                ["sepal_length", "sepal_width", "petal_length", "petal_width"],
+                index=2,
+                key="scatter_y"
+            )
+        
+        # 산점도 그리기
+        fig_scatter = px.scatter(
+            filtered_df,
+            x=x_axis,
+            y=y_axis,
+            color="species",
+            size="petal_width",
+            hover_data=["sepal_length", "sepal_width", "petal_length", "petal_width"],
+            title=f"{x_axis} vs {y_axis}",
+            color_discrete_sequence=px.colors.qualitative.Set2
+        )
+        fig_scatter.update_layout(height=500)
+        st.plotly_chart(fig_scatter, use_container_width=True)
+    
+    # 탭 2: 히스토그램
+    with tab2:
+        st.subheader("분포 분석")
+        
+        feature = st.selectbox(
+            "특성 선택",
+            ["sepal_length", "sepal_width", "petal_length", "petal_width"],
+            key="hist_feature"
+        )
+        
+        fig_hist = px.histogram(
+            filtered_df,
+            x=feature,
+            color="species",
+            marginal="box",
+            nbins=30,
+            title=f"{feature} 분포",
+            color_discrete_sequence=px.colors.qualitative.Set2
+        )
+        fig_hist.update_layout(height=500)
+        st.plotly_chart(fig_hist, use_container_width=True)
+    
+    # 탭 3: 박스플롯
+    with tab3:
+        st.subheader("박스플롯 분석")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            fig_box1 = px.box(
+                filtered_df,
+                x="species",
+                y="sepal_length",
+                color="species",
+                title="꽃받침 길이 비교",
+                color_discrete_sequence=px.colors.qualitative.Set2
+            )
+            st.plotly_chart(fig_box1, use_container_width=True)
+            
+            fig_box2 = px.box(
+                filtered_df,
+                x="species",
+                y="sepal_width",
+                color="species",
+                title="꽃받침 너비 비교",
+                color_discrete_sequence=px.colors.qualitative.Set2
+            )
+            st.plotly_chart(fig_box2, use_container_width=True)
+        
+        with col2:
+            fig_box3 = px.box(
+                filtered_df,
+                x="species",
+                y="petal_length",
+                color="species",
+                title="꽃잎 길이 비교",
+                color_discrete_sequence=px.colors.qualitative.Set2
+            )
+            st.plotly_chart(fig_box3, use_container_width=True)
+            
+            fig_box4 = px.box(
+                filtered_df,
+                x="species",
+                y="petal_width",
+                color="species",
+                title="꽃잎 너비 비교",
+                color_discrete_sequence=px.colors.qualitative.Set2
+            )
+            st.plotly_chart(fig_box4, use_container_width=True)
+    
+    # 탭 4: 히트맵
+    with tab4:
+        st.subheader("상관관계 분석")
+        
+        # 숫자형 컬럼만 선택
+        numeric_cols = ["sepal_length", "sepal_width", "petal_length", "petal_width"]
+        corr_matrix = filtered_df[numeric_cols].corr()
+        
+        fig_heatmap = go.Figure(data=go.Heatmap(
+            z=corr_matrix.values,
+            x=corr_matrix.columns,
+            y=corr_matrix.columns,
+            colorscale='RdBu',
+            zmid=0,
+            text=corr_matrix.values.round(2),
+            texttemplate='%{text}',
+            textfont={"size": 12},
+            colorbar=dict(title="상관계수")
+        ))
+        
+        fig_heatmap.update_layout(
+            title="특성 간 상관관계",
+            height=500
+        )
+        st.plotly_chart(fig_heatmap, use_container_width=True)
+        
+        # 품종별 평균 비교
+        st.subheader("품종별 평균 비교")
+        
+        avg_by_species = filtered_df.groupby('species')[numeric_cols].mean().reset_index()
+        
+        fig_bar = go.Figure()
+        
+        for col in numeric_cols:
+            fig_bar.add_trace(go.Bar(
+                name=col,
+                x=avg_by_species['species'],
+                y=avg_by_species[col],
+                text=avg_by_species[col].round(2),
+                textposition='auto',
+            ))
+        
+        fig_bar.update_layout(
+            title="품종별 특성 평균값",
+            barmode='group',
+            height=400,
+            xaxis_title="품종",
+            yaxis_title="평균값 (cm)"
+        )
+        st.plotly_chart(fig_bar, use_container_width=True)
+    
+    # 탭 5: 데이터 테이블
+    with tab5:
+        st.subheader("원본 데이터")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write(f"**총 {len(filtered_df)}개의 데이터**")
+        with col2:
+            if st.button("CSV 다운로드"):
+                csv = filtered_df.to_csv(index=False, encoding='utf-8-sig')
+                st.download_button(
+                    label="📥 CSV 파일 다운로드",
+                    data=csv,
+                    file_name="iris_data.csv",
+                    mime="text/csv"
+                )
+        
+        st.dataframe(filtered_df, use_container_width=True, height=400)
+        
+        # 통계 요약
+        st.subheader("통계 요약")
+        st.dataframe(filtered_df.describe(), use_container_width=True)
 
-if data.empty:
-    st.warning("데이터 로드에 실패하여 시각화를 진행할 수 없습니다.")
-    st.stop()
+except Exception as e:
+    st.error("⚠️ 데이터를 불러오는 중 오류가 발생했습니다.")
+    st.error(f"오류 내용: {str(e)}")
+    st.info("""
+    **해결 방법:**
+    1. `.streamlit/secrets.toml` 파일에 Supabase 인증 정보가 올바르게 설정되어 있는지 확인하세요.
+    2. Supabase에 'iris' 테이블이 존재하는지 확인하세요.
+    3. 테이블에 다음 컬럼이 있는지 확인하세요: sepal_length, sepal_width, petal_length, petal_width, species
+    """)
 
-st.sidebar.header("필터 설정")
-
-# ----------------------------------------------------
-# 2. 사이드바 필터 설정
-# ----------------------------------------------------
-
-# Pclass (객실 등급) 필터
-pclass_options = sorted(data['pclass'].unique())
-selected_pclass = st.sidebar.multiselect(
-    "객실 등급 (Pclass)",
-    options=pclass_options,
-    default=pclass_options
-)
-
-# Sex (성별) 필터
-gender_options = data['sex'].unique().tolist()
-selected_gender = st.sidebar.multiselect(
-    "성별 (Sex)",
-    options=gender_options,
-    default=gender_options
-)
-
-# Survived (생존 여부) 필터
-survival_options = {0: "사망 (Died)", 1: "생존 (Survived)"}
-selected_survival = st.sidebar.multiselect(
-    "생존 여부 (Survived)",
-    options=list(survival_options.keys()),
-    format_func=lambda x: survival_options[x],
-    default=list(survival_options.keys())
-)
-
-# 필터 적용
-filtered_data = data[
-    data['pclass'].isin(selected_pclass) &
-    data['sex'].isin(selected_gender) &
-    data['survived'].isin(selected_survival)
-]
-
-st.sidebar.metric(
-    "총 승객 수 (필터 적용)",
-    f"{len(filtered_data):,}"
-)
-
-# ----------------------------------------------------
-# 3. 대시보드 시각화 구성
-# ----------------------------------------------------
-
-# 3.1. 요약 통계 (KPI)
-col1, col2, col3 = st.columns(3)
-
-total_passengers = len(data)
-# 필터링된 데이터에서 생존자 수 계산
-survivors = filtered_data['survived'].sum()
-# 생존율 계산 (분모가 0이 아닐 경우만 계산)
-survival_rate = (survivors / len(filtered_data)) * 100 if len(filtered_data) > 0 else 0
-data_diff = survival_rate - (data['survived'].sum() / total_passengers * 100) # 전체 대비 생존율 변화
-
-col1.metric("전체 승객 수", f"{total_passengers:,}명")
-col2.metric("필터 적용 생존자", f"{survivors:,}명")
-col3.metric(
-    "필터 적용 생존율", 
-    f"{survival_rate:.2f}%", 
-    delta=f"{data_diff:.2f}% (전체 생존율 대비)", 
-    delta_color="normal"
-)
-
-
-st.markdown("---")
-st.subheader("주요 승객 특성 및 생존 분석")
-
-# 3.2. 객실 등급별 생존자 수 (Bar Chart)
-# 데이터프레임을 그룹화하여 카운트합니다.
-pclass_survival_counts = filtered_data.groupby(['pclass', 'survived']).size().reset_index(name='Count')
-fig_pclass_survival = px.bar(
-    pclass_survival_counts,
-    x='pclass',
-    y='Count',
-    color='survived',
-    barmode='group',
-    labels={'pclass': '객실 등급', 'Count': '승객 수', 'survived': '생존 여부 (0: 사망, 1: 생존)'},
-    category_orders={"survived": [0, 1]},
-    color_discrete_map={0: '#FF6347', 1: '#3CB371'}, # Coral, MediumSeaGreen
-    title='객실 등급별 생존자 및 사망자 수'
-)
-fig_pclass_survival.update_layout(xaxis={'type': 'category'})
-
-# 3.3. 연령 분포 (Histogram)
-fig_age_distribution = px.histogram(
-    filtered_data.dropna(subset=['age']), # NaN 값은 시각화에서 제외
-    x='age',
-    color='survived',
-    nbins=30,
-    marginal="box",
-    histnorm='density', # 밀도 분포로 표시
-    color_discrete_map={0: '#FF6347', 1: '#3CB371'},
-    labels={'age': '연령 (Age)', 'count': '밀도'},
-    title='연령 및 생존 여부별 분포'
-)
-
-# 차트 레이아웃 배치
-col_chart_1, col_chart_2 = st.columns(2)
-with col_chart_1:
-    st.plotly_chart(fig_pclass_survival, use_container_width=True)
-
-with col_chart_2:
-    st.plotly_chart(fig_age_distribution, use_container_width=True)
-
-
-# 3.4. 운임(Fare)과 연령(Age)별 산점도 - 생존 여부 시각화
-fig_fare_age = px.scatter(
-    filtered_data,
-    x='fare',
-    y='age',
-    color='survived',
-    size='fare',
-    hover_name='name',
-    color_discrete_map={0: '#FF6347', 1: '#3CB371'},
-    labels={'fare': '운임 (Fare)', 'age': '연령 (Age)', 'survived': '생존 여부'},
-    title='운임과 연령에 따른 생존 분포'
-)
-st.plotly_chart(fig_fare_age, use_container_width=True)
-
-
-st.markdown("---")
-
-# 3.5. 원본 데이터 미리보기 (선택 사항)
-if st.checkbox("원본 데이터 테이블 보기", False):
-    st.subheader("원본 데이터 (필터 적용됨)")
-    # 'name' 컬럼이 있는 경우에만 표시
-    if 'name' in filtered_data.columns:
-        st.dataframe(filtered_data[['pclass', 'sex', 'age', 'fare', 'survived', 'name']].head(100))
-    else:
-         st.dataframe(filtered_data.head(100))
+# 사이드바 정보
+st.sidebar.markdown("---")
+st.sidebar.info("""
+**대시보드 정보**
+- 데이터: Iris 데이터셋
+- 연결: Supabase
+- 시각화: Plotly
+- 프레임워크: Streamlit
+""")
