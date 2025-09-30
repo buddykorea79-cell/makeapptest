@@ -35,7 +35,7 @@ try:
     st.sidebar.header("📊 필터 옵션")
     
     # 종(species) 선택
-    species_list = df['species'].unique().tolist()
+    species_list = df['Species'].unique().tolist()
     selected_species = st.sidebar.multiselect(
         "품종 선택",
         species_list,
@@ -43,7 +43,7 @@ try:
     )
     
     # 데이터 필터링
-    filtered_df = df[df['species'].isin(selected_species)]
+    filtered_df = df[df['Species'].isin(selected_species)]
     
     # 메트릭 표시
     col1, col2, col3, col4 = st.columns(4)
@@ -51,11 +51,11 @@ try:
     with col1:
         st.metric("총 데이터 수", len(filtered_df))
     with col2:
-        st.metric("품종 수", filtered_df['species'].nunique())
+        st.metric("품종 수", filtered_df['Species'].nunique())
     with col3:
-        st.metric("평균 꽃잎 길이", f"{filtered_df['petal_length'].mean():.2f} cm")
+        st.metric("평균 꽃잎 길이", f"{filtered_df['PetalLengthCm'].mean():.2f} cm")
     with col4:
-        st.metric("평균 꽃받침 길이", f"{filtered_df['sepal_length'].mean():.2f} cm")
+        st.metric("평균 꽃받침 길이", f"{filtered_df['SepalLengthCm'].mean():.2f} cm")
     
     st.markdown("---")
     
@@ -71,14 +71,14 @@ try:
         with col1:
             x_axis = st.selectbox(
                 "X축 선택",
-                ["sepal_length", "sepal_width", "petal_length", "petal_width"],
+                ["SepalLengthCm", "SepalWidthCm", "PetalLengthCm", "PetalWidthCm"],
                 key="scatter_x"
             )
         
         with col2:
             y_axis = st.selectbox(
                 "Y축 선택",
-                ["sepal_length", "sepal_width", "petal_length", "petal_width"],
+                ["SepalLengthCm", "SepalWidthCm", "PetalLengthCm", "PetalWidthCm"],
                 index=2,
                 key="scatter_y"
             )
@@ -88,9 +88,9 @@ try:
             filtered_df,
             x=x_axis,
             y=y_axis,
-            color="species",
-            size="petal_width",
-            hover_data=["sepal_length", "sepal_width", "petal_length", "petal_width"],
+            color="Species",
+            size="PetalWidthCm",
+            hover_data=["SepalLengthCm", "SepalWidthCm", "PetalLengthCm", "PetalWidthCm"],
             title=f"{x_axis} vs {y_axis}",
             color_discrete_sequence=px.colors.qualitative.Set2
         )
@@ -103,14 +103,14 @@ try:
         
         feature = st.selectbox(
             "특성 선택",
-            ["sepal_length", "sepal_width", "petal_length", "petal_width"],
+            ["SepalLengthCm", "SepalWidthCm", "PetalLengthCm", "PetalWidthCm"],
             key="hist_feature"
         )
         
         fig_hist = px.histogram(
             filtered_df,
             x=feature,
-            color="species",
+            color="Species",
             marginal="box",
             nbins=30,
             title=f"{feature} 분포",
@@ -128,9 +128,9 @@ try:
         with col1:
             fig_box1 = px.box(
                 filtered_df,
-                x="species",
-                y="sepal_length",
-                color="species",
+                x="Species",
+                y="SepalLengthCm",
+                color="Species",
                 title="꽃받침 길이 비교",
                 color_discrete_sequence=px.colors.qualitative.Set2
             )
@@ -138,9 +138,9 @@ try:
             
             fig_box2 = px.box(
                 filtered_df,
-                x="species",
-                y="sepal_width",
-                color="species",
+                x="Species",
+                y="SepalWidthCm",
+                color="Species",
                 title="꽃받침 너비 비교",
                 color_discrete_sequence=px.colors.qualitative.Set2
             )
@@ -149,9 +149,9 @@ try:
         with col2:
             fig_box3 = px.box(
                 filtered_df,
-                x="species",
-                y="petal_length",
-                color="species",
+                x="Species",
+                y="PetalLengthCm",
+                color="Species",
                 title="꽃잎 길이 비교",
                 color_discrete_sequence=px.colors.qualitative.Set2
             )
@@ -159,9 +159,9 @@ try:
             
             fig_box4 = px.box(
                 filtered_df,
-                x="species",
-                y="petal_width",
-                color="species",
+                x="Species",
+                y="PetalWidthCm",
+                color="Species",
                 title="꽃잎 너비 비교",
                 color_discrete_sequence=px.colors.qualitative.Set2
             )
@@ -172,7 +172,7 @@ try:
         st.subheader("상관관계 분석")
         
         # 숫자형 컬럼만 선택
-        numeric_cols = ["sepal_length", "sepal_width", "petal_length", "petal_width"]
+        numeric_cols = ["SepalLengthCm", "SepalWidthCm", "PetalLengthCm", "PetalWidthCm"]
         corr_matrix = filtered_df[numeric_cols].corr()
         
         fig_heatmap = go.Figure(data=go.Heatmap(
@@ -196,14 +196,14 @@ try:
         # 품종별 평균 비교
         st.subheader("품종별 평균 비교")
         
-        avg_by_species = filtered_df.groupby('species')[numeric_cols].mean().reset_index()
+        avg_by_species = filtered_df.groupby('Species')[numeric_cols].mean().reset_index()
         
         fig_bar = go.Figure()
         
         for col in numeric_cols:
             fig_bar.add_trace(go.Bar(
                 name=col,
-                x=avg_by_species['species'],
+                x=avg_by_species['Species'],
                 y=avg_by_species[col],
                 text=avg_by_species[col].round(2),
                 textposition='auto',
@@ -248,7 +248,7 @@ except Exception as e:
     **해결 방법:**
     1. `.streamlit/secrets.toml` 파일에 Supabase 인증 정보가 올바르게 설정되어 있는지 확인하세요.
     2. Supabase에 'iris' 테이블이 존재하는지 확인하세요.
-    3. 테이블에 다음 컬럼이 있는지 확인하세요: sepal_length, sepal_width, petal_length, petal_width, species
+    3. 테이블에 다음 컬럼이 있는지 확인하세요: SepalLengthCm, SepalWidthCm, PetalLengthCm, PetalWidthCm, Species
     """)
 
 # 사이드바 정보
