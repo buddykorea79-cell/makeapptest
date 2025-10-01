@@ -3,45 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Netlify + Supabase Iris 시각화</title>
-    <!-- Tailwind CSS 로드 -->
+    <title>Iris 데이터 고급 시각화 대시보드</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Netlify 배포 시 차트 컨테이너가 중앙에 오도록 설정 */
-        #chart-container {
-            width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-            border-radius: 0.75rem; /* rounded-xl */
-            padding: 1rem;
-            background-color: white;
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .chart-card {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            margin-bottom: 2rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .chart-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+        }
+        
+        #loading-message {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .stat-card {
+            transition: transform 0.2s ease;
+        }
+        
+        .stat-card:hover {
+            transform: scale(1.05);
+        }
+        
+        /* 스크롤바 스타일링 */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
         }
     </style>
 </head>
-<body class="bg-gray-100 font-sans p-4 min-h-screen flex flex-col items-center">
-
-    <header class="w-full max-w-4xl text-center py-6">
-        <h1 class="text-4xl font-extrabold text-indigo-700">Supabase + Netlify: Iris 데이터 시각화 (Cm 단위 컬럼 사용)</h1>
-        <p class="text-gray-600 mt-2">GitHub에 커밋하고 Netlify로 자동 배포하여 실시간 데이터를 확인해보세요.</p>
+<body class="font-sans">
+    <!-- 헤더 -->
+    <header class="w-full py-8 px-4">
+        <div class="max-w-7xl mx-auto text-center">
+            <h1 class="text-5xl font-extrabold text-white mb-3 drop-shadow-lg">
+                🌸 Iris 데이터 고급 시각화 대시보드
+            </h1>
+            <p class="text-white text-lg opacity-90 mb-2">
+                Supabase + Netlify + Plotly.js
+            </p>
+            <p class="text-white text-sm opacity-75">
+                실시간 데이터 분석 및 다중 차트 시각화
+            </p>
+        </div>
     </header>
 
-    <!-- 차트가 렌더링될 컨테이너 -->
-    <main class="w-full p-4">
-        <div id="chart-container" class="shadow-xl bg-white rounded-xl">
-            <!-- 로딩 메시지 -->
-            <div id="loading-message" class="text-center p-10 text-gray-500 text-lg">
+    <!-- 메인 컨테이너 -->
+    <main class="max-w-7xl mx-auto px-4 pb-8">
+        <!-- 로딩/에러 메시지 -->
+        <div id="chart-container">
+            <div id="loading-message" class="text-center p-10 text-white text-xl bg-white bg-opacity-20 rounded-2xl backdrop-blur-sm">
+                <svg class="animate-spin h-10 w-10 text-white mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
                 Supabase에서 Iris 데이터를 불러오는 중...
             </div>
         </div>
+
+        <!-- 통계 카드 섹션 -->
+        <div id="stats-container" class="mb-8"></div>
+
+        <!-- 시각화 그리드 -->
+        <div class="space-y-6">
+            <!-- Row 1: 산점도 매트릭스 -->
+            <div class="chart-card">
+                <div id="scatter-matrix"></div>
+            </div>
+
+            <!-- Row 2: 3D 산점도와 파이 차트 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="chart-card">
+                    <div id="scatter-3d"></div>
+                </div>
+                <div class="chart-card">
+                    <div id="pie-chart"></div>
+                </div>
+            </div>
+
+            <!-- Row 3: 박스 플롯 -->
+            <div class="chart-card">
+                <div id="box-plots"></div>
+            </div>
+
+            <!-- Row 4: 바이올린 플롯과 히트맵 -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="chart-card">
+                    <div id="violin-plot"></div>
+                </div>
+                <div class="chart-card">
+                    <div id="heatmap"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 설명 섹션 -->
+        <div class="mt-8 bg-white rounded-2xl p-8 shadow-xl">
+            <h2 class="text-3xl font-bold text-indigo-700 mb-6">📊 시각화 설명</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="p-4 bg-blue-50 rounded-lg">
+                    <h3 class="font-bold text-lg text-blue-700 mb-2">📊 산점도 매트릭스</h3>
+                    <p class="text-gray-700 text-sm">모든 변수 간의 관계를 한눈에 파악할 수 있는 다중 산점도입니다. 각 셀은 두 변수 간의 상관관계를 보여줍니다.</p>
+                </div>
+
+                <div class="p-4 bg-green-50 rounded-lg">
+                    <h3 class="font-bold text-lg text-green-700 mb-2">🌐 3D 산점도</h3>
+                    <p class="text-gray-700 text-sm">3차원 공간에서 데이터의 분포를 시각화합니다. 마우스로 회전하며 다양한 각도에서 관찰할 수 있습니다.</p>
+                </div>
+
+                <div class="p-4 bg-purple-50 rounded-lg">
+                    <h3 class="font-bold text-lg text-purple-700 mb-2">📦 박스 플롯</h3>
+                    <p class="text-gray-700 text-sm">각 측정값의 분포, 중앙값, 이상치를 종별로 비교합니다. 분포의 차이를 명확하게 볼 수 있습니다.</p>
+                </div>
+
+                <div class="p-4 bg-pink-50 rounded-lg">
+                    <h3 class="font-bold text-lg text-pink-700 mb-2">🎻 바이올린 플롯</h3>
+                    <p class="text-gray-700 text-sm">박스 플롯과 커널 밀도 추정을 결합하여 데이터 분포의 형태를 더욱 상세하게 보여줍니다.</p>
+                </div>
+
+                <div class="p-4 bg-red-50 rounded-lg">
+                    <h3 class="font-bold text-lg text-red-700 mb-2">🔥 상관관계 히트맵</h3>
+                    <p class="text-gray-700 text-sm">변수 간의 선형 상관계수를 색상으로 표현합니다. 파란색은 양의 상관, 빨간색은 음의 상관을 나타냅니다.</p>
+                </div>
+
+                <div class="p-4 bg-amber-50 rounded-lg">
+                    <h3 class="font-bold text-lg text-amber-700 mb-2">🥧 종별 분포</h3>
+                    <p class="text-gray-700 text-sm">전체 데이터에서 각 종이 차지하는 비율을 도넛 차트로 표현합니다.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="mt-12 text-center text-white opacity-75">
+            <p class="text-sm">
+                Made with ❤️ using Supabase, Netlify, and Plotly.js
+            </p>
+            <p class="text-xs mt-2">
+                © 2025 Iris Visualization Dashboard
+            </p>
+        </footer>
     </main>
     
-    <!-- Plotly.js 라이브러리 로드 (시각화 담당) -->
+    <!-- Plotly.js -->
     <script src="https://cdn.plot.ly/plotly-2.31.1.min.js"></script>
     
-    <!-- JavaScript 모듈 로드 -->
+    <!-- 모듈 로드 -->
     <script type="module" src="./config.js"></script>
     <script type="module" src="./app.js"></script>
-
 </body>
 </html>
