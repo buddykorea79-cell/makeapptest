@@ -1,0 +1,50 @@
+<!-- test.html -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>간단 테스트 페이지</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            background-color: #f0f0f0; 
+            text-align: center; 
+            padding: 50px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+        #result {
+            margin-top: 30px;
+            font-size: 20px;
+            color: #007BFF;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>나의 첫 테스트 페이지</h1>
+    <p>버튼을 클릭하면 메시지가 나타납니다.</p>
+
+    <button onclick="showMessage()">클릭!</button>
+    <div id="result"></div>
+
+    <script>
+        function showMessage() {
+            const messages = [
+                "안녕하세요!",
+                "테스트 성공!",
+                "웹 페이지가 잘 작동합니다!",
+                "축하합니다!"
+            ];
+            // 메시지 랜덤 선택
+            const msg = messages[Math.floor(Math.random() * messages.length)];
+            document.getElementById("result").innerText = msg;
+        }
+    </script>
+
+</body>
+</html>
