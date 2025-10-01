@@ -1,1 +1,11 @@
-config.js
+dependencies
+/node_modules
+
+build output
+/dist
+/build
+
+temporary files
+.temp
+.vscode
+*.log
