@@ -17,9 +17,10 @@ async function visualizeIrisData() {
     }
     
     // 2. Supabase에서 'iris' 테이블 데이터 가져오기
+    // 요청하신 컬럼명 (SepalLengthCm, PetalLengthCm, Species)으로 쿼리합니다.
     const { data: irisData, error } = await supabase
         .from('iris')
-        .select('sepal_length, petal_length, species');
+        .select('SepalLengthCm, SepalWidthCm, PetalLengthCm, PetalWidthCm, Species');
 
     if (loadingMessage) {
         loadingMessage.style.display = 'none'; // 로딩 메시지 숨김
@@ -39,21 +40,24 @@ async function visualizeIrisData() {
     }
 
     // 3. Plotly를 위한 데이터 구조화 (종(species)별로 분리하여 트레이스 생성)
+    // 시각화는 SepalLengthCm과 PetalLengthCm을 사용합니다.
     const speciesGroups = {};
     irisData.forEach(row => {
-        const species = row.species || 'Unknown';
+        // 변경된 컬럼 이름 사용
+        const species = row.Species || 'Unknown'; 
         if (!speciesGroups[species]) {
             speciesGroups[species] = {
-                x: [], // sepal_length (꽃받침 길이)
-                y: [], // petal_length (꽃잎 길이)
+                x: [], // SepalLengthCm (꽃받침 길이)
+                y: [], // PetalLengthCm (꽃잎 길이)
                 mode: 'markers',
                 type: 'scatter',
                 name: species,
                 marker: { size: 10, opacity: 0.8 }
             };
         }
-        speciesGroups[species].x.push(row.sepal_length);
-        speciesGroups[species].y.push(row.petal_length);
+        // 변경된 컬럼 이름 사용
+        speciesGroups[species].x.push(row.SepalLengthCm);
+        speciesGroups[species].y.push(row.PetalLengthCm);
     });
 
     const plotData = Object.values(speciesGroups);
@@ -61,11 +65,12 @@ async function visualizeIrisData() {
     // 4. 시각화 레이아웃 설정
     const layout = {
         title: {
-            text: 'Iris 데이터셋 시각화: Sepal Length vs Petal Length',
+            text: 'Iris 데이터셋 산점도: Sepal Length vs Petal Length',
             font: { size: 20, color: '#333' }
         },
-        xaxis: { title: 'Sepal Length (꽃받침 길이, cm)' },
-        yaxis: { title: 'Petal Length (꽃잎 길이, cm)' },
+        // 변경된 컬럼 이름에 맞게 축 이름 변경
+        xaxis: { title: 'Sepal Length (꽃받침 길이, Cm)' },
+        yaxis: { title: 'Petal Length (꽃잎 길이, Cm)' },
         hovermode: 'closest',
         responsive: true,
         height: 600,
