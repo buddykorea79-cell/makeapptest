@@ -3,192 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iris 데이터 시각화</title>
+    <title>Netlify + Supabase Iris 시각화</title>
+    <!-- Tailwind CSS 로드 -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
+        /* Netlify 배포 시 차트 컨테이너가 중앙에 오도록 설정 */
+        #chart-container {
+            width: 100%;
             max-width: 1200px;
             margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-        }
-        
-        h1 {
-            text-align: center;
-            color: #667eea;
-            margin-bottom: 10px;
-            font-size: 2.5em;
-        }
-        
-        .subtitle {
-            text-align: center;
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 1.1em;
-        }
-        
-        #loading {
-            text-align: center;
-            padding: 40px;
-            font-size: 1.2em;
-            color: #667eea;
-        }
-        
-        #error {
-            background: #fee;
-            border: 2px solid #fcc;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px 0;
-            color: #c33;
-            display: none;
-        }
-        
-        .chart-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 30px;
-            margin: 30px 0;
-        }
-        
-        .chart-container {
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        canvas {
-            max-width: 100%;
-            height: auto !important;
-        }
-        
-        #data-table {
-            margin-top: 40px;
-            overflow-x: auto;
-        }
-        
-        #data-table h3 {
-            color: #667eea;
-            margin-bottom: 15px;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        
-        th {
-            background: #667eea;
-            color: white;
-            padding: 15px;
-            text-align: left;
-            font-weight: 600;
-        }
-        
-        td {
-            padding: 12px 15px;
-            border-bottom: 1px solid #eee;
-        }
-        
-        tr:hover {
-            background: #f8f9fa;
-        }
-        
-        tr:last-child td {
-            border-bottom: none;
-        }
-        
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin: 30px 0;
-        }
-        
-        .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        .stat-card h4 {
-            font-size: 0.9em;
-            opacity: 0.9;
-            margin-bottom: 10px;
-        }
-        
-        .stat-card .value {
-            font-size: 2em;
-            font-weight: bold;
-        }
-        
-        @media (max-width: 768px) {
-            .chart-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            h1 {
-                font-size: 2em;
-            }
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            border-radius: 0.75rem; /* rounded-xl */
+            padding: 1rem;
+            background-color: white;
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>🌸 Iris 데이터 시각화</h1>
-        <p class="subtitle">Supabase + Netlify + Chart.js</p>
-        
-        <div id="loading">
-            데이터를 불러오는 중... ⏳
-        </div>
-        
-        <div id="error"></div>
-        
-        <div class="chart-grid">
-            <div class="chart-container">
-                <canvas id="scatterChart"></canvas>
-            </div>
-            <div class="chart-container">
-                <canvas id="boxPlot"></canvas>
-            </div>
-            <div class="chart-container">
-                <canvas id="pieChart"></canvas>
+<body class="bg-gray-100 font-sans p-4 min-h-screen flex flex-col items-center">
+
+    <header class="w-full max-w-4xl text-center py-6">
+        <h1 class="text-4xl font-extrabold text-indigo-700">Supabase + Netlify: Iris 데이터 시각화</h1>
+        <p class="text-gray-600 mt-2">GitHub에 커밋하고 Netlify로 자동 배포하여 실시간 데이터를 확인해보세요.</p>
+    </header>
+
+    <!-- 차트가 렌더링될 컨테이너 -->
+    <main class="w-full p-4">
+        <div id="chart-container" class="shadow-xl bg-white rounded-xl">
+            <!-- 로딩 메시지 -->
+            <div id="loading-message" class="text-center p-10 text-gray-500 text-lg">
+                Supabase에서 Iris 데이터를 불러오는 중...
             </div>
         </div>
-        
-        <div id="data-table"></div>
-    </div>
+    </main>
     
-    <!-- 외부 라이브러리 -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Plotly.js 라이브러리 로드 (시각화 담당) -->
+    <script src="https://cdn.plot.ly/plotly-2.31.1.min.js"></script>
     
-    <!-- 설정 파일 -->
-    <script src="config.js"></script>
-    
-    <!-- 메인 앱 -->
-    <script src="app.js"></script>
+    <!-- JavaScript 모듈 로드 -->
+    <script type="module" src="./config.js"></script>
+    <script type="module" src="./app.js"></script>
+
 </body>
 </html>
