@@ -3,183 +3,101 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iris 데이터 고급 시각화 대시보드</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-        }
-        
-        .chart-card {
-            background: white;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-            margin-bottom: 2rem;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        
-        .chart-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
-        }
-        
-        #loading-message {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        .stat-card {
-            transition: transform 0.2s ease;
-        }
-        
-        .stat-card:hover {
-            transform: scale(1.05);
-        }
-        
-        /* 스크롤바 스타일링 */
-        ::-webkit-scrollbar {
-            width: 10px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: #667eea;
-            border-radius: 10px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: #764ba2;
-        }
-    </style>
+    <title>전력 절약 실천 캠페인 | 5% 절감 목표</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body class="font-sans">
-    <!-- 헤더 -->
-    <header class="w-full py-8 px-4">
-        <div class="max-w-7xl mx-auto text-center">
-            <h1 class="text-5xl font-extrabold text-white mb-3 drop-shadow-lg">
-                🌸 Iris 데이터 고급 시각화 대시보드
-            </h1>
-            <p class="text-white text-lg opacity-90 mb-2">
-                Supabase + Netlify + Plotly.js
-            </p>
-            <p class="text-white text-sm opacity-75">
-                실시간 데이터 분석 및 다중 차트 시각화
-            </p>
+<body>
+    <header>
+        <div class="container">
+            <h1>💡 전력 낭비, 이제는 멈춰야 합니다</h1>
+            <p class="subtitle">데이터로 확인된 낭비 요소, 모두의 작은 실천이 필요할 때입니다</p>
         </div>
     </header>
 
-    <!-- 메인 컨테이너 -->
-    <main class="max-w-7xl mx-auto px-4 pb-8">
-        <!-- 로딩/에러 메시지 -->
-        <div id="chart-container">
-            <div id="loading-message" class="text-center p-10 text-white text-xl bg-white bg-opacity-20 rounded-2xl backdrop-blur-sm">
-                <svg class="animate-spin h-10 w-10 text-white mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Supabase에서 Iris 데이터를 불러오는 중...
+    <main class="container">
+        <section class="intro-section">
+            <h2>📊 캠페인 배경: 데이터 기반 현황 진단</h2>
+            <div class="data-box">
+                <h3>비효율 집중 시간대: 주말 및 비업무 시간</h3>
+                <p>최근 청사 전력 사용 데이터 분석 결과, 주말(비업무일)에 <strong>실제 필요한 최소 기본 사용량(100kWh)보다 150kWh 더 많은 불필요한 전력</strong>이 소모되고 있습니다.</p>
+                <p class="highlight">이는 곧 불필요하게 250kWh 수준의 높은 전력이 낭비되고 있음을 의미합니다.</p>
+                <p class="goal">🎯 목표: 청사 전체 전력 사용량의 <span class="emphasis">5% 절감</span></p>
             </div>
-        </div>
+        </section>
 
-        <!-- 통계 카드 섹션 -->
-        <div id="stats-container" class="mb-8"></div>
-
-        <!-- 시각화 그리드 -->
-        <div class="space-y-6">
-            <!-- Row 1: 산점도 매트릭스 -->
-            <div class="chart-card">
-                <div id="scatter-matrix"></div>
-            </div>
-
-            <!-- Row 2: 3D 산점도와 파이 차트 -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="chart-card">
-                    <div id="scatter-3d"></div>
-                </div>
-                <div class="chart-card">
-                    <div id="pie-chart"></div>
-                </div>
-            </div>
-
-            <!-- Row 3: 박스 플롯 -->
-            <div class="chart-card">
-                <div id="box-plots"></div>
-            </div>
-
-            <!-- Row 4: 바이올린 플롯과 히트맵 -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="chart-card">
-                    <div id="violin-plot"></div>
-                </div>
-                <div class="chart-card">
-                    <div id="heatmap"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- 설명 섹션 -->
-        <div class="mt-8 bg-white rounded-2xl p-8 shadow-xl">
-            <h2 class="text-3xl font-bold text-indigo-700 mb-6">📊 시각화 설명</h2>
+        <section class="actions-section">
+            <h2>🌱 5% 절감을 위한 핵심 실천 5가지</h2>
+            <p class="section-description">우리 모두의 작은 실천이 큰 변화를 만듭니다</p>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="p-4 bg-blue-50 rounded-lg">
-                    <h3 class="font-bold text-lg text-blue-700 mb-2">📊 산점도 매트릭스</h3>
-                    <p class="text-gray-700 text-sm">모든 변수 간의 관계를 한눈에 파악할 수 있는 다중 산점도입니다. 각 셀은 두 변수 간의 상관관계를 보여줍니다.</p>
+            <div class="cards-container" id="cardsContainer">
+                <div class="card" data-index="0">
+                    <div class="card-icon">💻</div>
+                    <h3>퇴근 시 PC 전원 완전 종료</h3>
+                    <p class="card-description">절전 모드가 아닌 <strong>전원 완전 종료</strong>로 대기 전력을 차단하세요.</p>
+                    <div class="card-detail">
+                        <p>💡 <strong>절감 효과</strong></p>
+                        <p>직원 300명 기준, 매일 10시간 대기 전력 차단 시 하루 <strong>150kWh</strong>의 불필요한 전력 소모를 방지할 수 있습니다.</p>
+                    </div>
                 </div>
 
-                <div class="p-4 bg-green-50 rounded-lg">
-                    <h3 class="font-bold text-lg text-green-700 mb-2">🌐 3D 산점도</h3>
-                    <p class="text-gray-700 text-sm">3차원 공간에서 데이터의 분포를 시각화합니다. 마우스로 회전하며 다양한 각도에서 관찰할 수 있습니다.</p>
+                <div class="card" data-index="1">
+                    <div class="card-icon">🔌</div>
+                    <h3>모든 멀티탭 스위치 완전 차단</h3>
+                    <p class="card-description">프린터, 충전기, 공용 기기 등 퇴근 시 <strong>멀티탭 스위치를 내려</strong> 유령 대기 전력을 차단하세요.</p>
+                    <div class="card-detail">
+                        <p>💡 <strong>절감 효과</strong></p>
+                        <p>청사 내 멀티탭 100개 가정 시, 매일 14시간 대기 전력 차단으로 하루 <strong>70kWh</strong>를 추가 절약할 수 있습니다.</p>
+                    </div>
                 </div>
 
-                <div class="p-4 bg-purple-50 rounded-lg">
-                    <h3 class="font-bold text-lg text-purple-700 mb-2">📦 박스 플롯</h3>
-                    <p class="text-gray-700 text-sm">각 측정값의 분포, 중앙값, 이상치를 종별로 비교합니다. 분포의 차이를 명확하게 볼 수 있습니다.</p>
+                <div class="card" data-index="2">
+                    <div class="card-icon">💡</div>
+                    <h3>불필요한 조명 소등 습관화</h3>
+                    <p class="card-description">점심시간, 잠시 자리를 비울 때, 창가의 햇빛이 충분한 시간에는 <strong>즉시 소등</strong>하세요.</p>
+                    <div class="card-detail">
+                        <p>💡 <strong>절감 효과</strong></p>
+                        <p>사무실 조명 10%만 꺼도 연간 수백만 원의 비용을 절감하는 가장 손쉬운 방법입니다.</p>
+                    </div>
                 </div>
 
-                <div class="p-4 bg-pink-50 rounded-lg">
-                    <h3 class="font-bold text-lg text-pink-700 mb-2">🎻 바이올린 플롯</h3>
-                    <p class="text-gray-700 text-sm">박스 플롯과 커널 밀도 추정을 결합하여 데이터 분포의 형태를 더욱 상세하게 보여줍니다.</p>
+                <div class="card" data-index="3">
+                    <div class="card-icon">🌡️</div>
+                    <h3>냉난방 적정 온도 준수</h3>
+                    <p class="card-description">정부 권고 기준인 <strong>여름 26°C 이상, 겨울 20°C 이하</strong>의 적정 온도를 유지하세요.</p>
+                    <div class="card-detail">
+                        <p>💡 <strong>절감 효과</strong></p>
+                        <p>설정 온도를 1°C 조정할 때마다 냉방 시 약 <strong>7%</strong>, 난방 시 약 <strong>3%</strong>의 에너지 절약 효과를 볼 수 있습니다.</p>
+                    </div>
                 </div>
 
-                <div class="p-4 bg-red-50 rounded-lg">
-                    <h3 class="font-bold text-lg text-red-700 mb-2">🔥 상관관계 히트맵</h3>
-                    <p class="text-gray-700 text-sm">변수 간의 선형 상관계수를 색상으로 표현합니다. 파란색은 양의 상관, 빨간색은 음의 상관을 나타냅니다.</p>
-                </div>
-
-                <div class="p-4 bg-amber-50 rounded-lg">
-                    <h3 class="font-bold text-lg text-amber-700 mb-2">🥧 종별 분포</h3>
-                    <p class="text-gray-700 text-sm">전체 데이터에서 각 종이 차지하는 비율을 도넛 차트로 표현합니다.</p>
+                <div class="card" data-index="4">
+                    <div class="card-icon">⚡</div>
+                    <h3>개인 전열 기구 사용 최소화</h3>
+                    <p class="card-description">개인용 전기장판, 히터, 커피포트 등 <strong>고용량 전열 기구의 사용을 자제</strong>해 주세요.</p>
+                    <div class="card-detail">
+                        <p>💡 <strong>절감 효과</strong></p>
+                        <p>고용량 전열기구는 PC 10대 분량의 전력을 소모합니다. 사용 자제는 피크 시간대 전력 관리에 결정적입니다.</p>
+                    </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <!-- Footer -->
-        <footer class="mt-12 text-center text-white opacity-75">
-            <p class="text-sm">
-                Made with ❤️ using Supabase, Netlify, and Plotly.js
-            </p>
-            <p class="text-xs mt-2">
-                © 2025 Iris Visualization Dashboard
-            </p>
-        </footer>
+        <section class="closing-section">
+            <h2>🌍 모두의 작은 실천이 곧 청사의 미래입니다</h2>
+            <div class="closing-message">
+                <p>우리 청사의 전력 낭비는 특정 설비의 문제가 아닌, <strong>운영 습관</strong>에서 비롯되고 있습니다.</p>
+                <p>우리의 작은 실천 다섯 가지가 모인다면 <strong>5% 절감 목표</strong>를 반드시 달성하고, 나아가 연간 <strong>수백만 원 이상의 예산 절감</strong> 효과를 가져올 것입니다.</p>
+                <p class="final-message">데이터가 알려주는 낭비 요소를 함께 해결하고 효율적이고 친환경적인 청사를 만들어 나갈 수 있도록 전 직원의 적극적인 참여를 부탁드립니다.</p>
+            </div>
+        </section>
     </main>
-    
-    <!-- Plotly.js -->
-    <script src="https://cdn.plot.ly/plotly-2.31.1.min.js"></script>
-    
-    <!-- 모듈 로드 -->
-    <script type="module" src="./config.js"></script>
-    <script type="module" src="./app.js"></script>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 에너지 절약 캠페인. 함께 만드는 지속 가능한 미래.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
 </body>
 </html>
