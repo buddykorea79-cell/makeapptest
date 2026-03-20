@@ -22,20 +22,44 @@ st.markdown("""
 
 .winner-box {
     background: #0d0d22;
-    border: 2px solid #2a2a5a;
-    border-radius: 14px;
-    padding: 20px;
+    border: 2px solid #ffd700;
+    border-radius: 16px;
+    padding: 28px 20px;
     text-align: center;
-    margin: 8px 0;
+    margin: 10px 0;
 }
 .winner-number {
-    font-size: 2.8rem;
+    font-size: 3.4rem;
     font-weight: 900;
     color: #ffd700;
     font-family: 'Courier New', monospace;
-    letter-spacing: 4px;
-    text-shadow: 0 0 20px rgba(255,215,0,0.5);
+    letter-spacing: 5px;
+    text-shadow: 0 0 30px rgba(255,215,0,0.7);
 }
+.winner-name {
+    font-size: 1.1rem;
+    color: #6ee7b7;
+    margin-top: 10px;
+}
+.prev-winner-box {
+    background: #111122;
+    border: 1px solid #3a3a6a;
+    border-radius: 10px;
+    padding: 14px 20px;
+    margin: 6px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.prev-winner-label { color: #9ca3af; font-size: 0.85rem; }
+.prev-winner-number {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #ffd700;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 2px;
+}
+.prev-winner-name { color: #6ee7b7; font-size: 0.9rem; margin-top: 2px; }
 .phone-chip {
     display: inline-block;
     background: #1a1a3a;
@@ -50,10 +74,7 @@ st.markdown("""
     width: 100%;
     margin: 2px 0;
 }
-.stButton > button {
-    width: 100%;
-    font-weight: 600;
-}
+.stButton > button { font-weight: 600; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -89,6 +110,7 @@ for key, default in [
     ('first_winners', []),
     ('second_winners', []),
     ('loaded', False),
+    ('saved_winner', None),
 ]:
     if key not in st.session_state:
         st.session_state[key] = default
@@ -96,7 +118,6 @@ for key, default in [
 # ─── 제목 ────────────────────────────────────────────────────────
 st.title("🎁 경품 추첨")
 st.caption("CSV 파일을 업로드하고 1등 → 2등 순서로 추첨하세요")
-
 st.markdown("---")
 
 # ─── CSV 업로드 ──────────────────────────────────────────────────
@@ -108,26 +129,22 @@ uploaded = st.file_uploader("CSV 파일 선택", type=["csv"], label_visibility=
 if uploaded:
     try:
         raw = uploaded.read()
+        df = None
         for enc in ["utf-8-sig", "utf-8", "cp949", "euc-kr"]:
             try:
                 df = pd.read_csv(io.BytesIO(raw), encoding=enc)
                 break
             except Exception:
                 continue
-        else:
+        if df is None:
             st.error("파일 인코딩을 읽을 수 없습니다.")
-            df = None
-
-        if df is not None:
+        else:
             name_col = next(
-                (c for c in df.columns if any(k in c for k in ["성명", "이름", "name", "Name"])),
-                None,
+                (c for c in df.columns if any(k in c for k in ["성명", "이름", "name", "Name"])), None
             )
             phone_col = next(
-                (c for c in df.columns if any(k in c for k in ["전화", "연락", "핸드폰", "phone", "Phone"])),
-                None,
+                (c for c in df.columns if any(k in c for k in ["전화", "연락", "핸드폰", "phone", "Phone"])), None
             )
-
             if name_col is None or phone_col is None:
                 st.error(f"열을 찾을 수 없습니다. 헤더: {list(df.columns)}")
             else:
@@ -137,11 +154,11 @@ if uploaded:
                     phone = parse_phone(str(row[phone_col]))
                     if name and name != "nan" and len(phone) >= 8:
                         data.append({"name": name, "phone": phone})
-
                 if data:
                     st.session_state.participants = data
                     st.session_state.first_winners = []
                     st.session_state.second_winners = []
+                    st.session_state.saved_winner = None
                     st.session_state.loaded = True
                     st.success(f"✅ **{len(data)}명** 로드 완료")
                 else:
@@ -160,13 +177,13 @@ if st.session_state.loaded and st.session_state.participants:
 
     st.markdown("---")
 
-    # 통계
+    # ── 통계 ─────────────────────────────────────────────────────
     c1, c2, c3, c4 = st.columns(4)
     for col, label, val in [
-        (c1, "전체",      len(p)),
-        (c2, "1등 당첨",  len(fw)),
-        (c3, "2등 당첨",  len(sw)),
-        (c4, "잔여",      len(remaining)),
+        (c1, "전체", len(p)),
+        (c2, "1등 당첨", len(fw)),
+        (c3, "2등 당첨", len(sw)),
+        (c4, "잔여", len(remaining)),
     ]:
         col.markdown(
             f"<div class='stat-box'><div class='label'>{label}</div>"
@@ -176,19 +193,24 @@ if st.session_state.loaded and st.session_state.participants:
 
     st.markdown("---")
 
-    # ── 추첨 버튼 ────────────────────────────────────────────────
+    # ── 버튼 ─────────────────────────────────────────────────────
     btn_col1, btn_col2 = st.columns(2)
     with btn_col1:
-        btn_1st = st.button(
-            "🥇 1등 추첨",
-            disabled=(len(fw) >= 2),
-            use_container_width=True,
-        )
+        btn_1st = st.button("🥇 1등 추첨", disabled=(len(fw) >= 2), use_container_width=True)
     with btn_col2:
-        btn_2nd = st.button(
-            f"🥈 2등 추첨 (50명)",
-            disabled=(len(fw) < 2 or len(sw) > 0),
-            use_container_width=True,
+        btn_2nd = st.button("🥈 2등 추첨 (50명)", disabled=(len(fw) < 2 or len(sw) > 0), use_container_width=True)
+
+    # ── 저장된 1번째 당첨자 표시 (rerun 후에도 유지) ──────────────
+    if st.session_state.saved_winner and len(fw) == 1 and not btn_1st:
+        w = st.session_state.saved_winner
+        st.markdown(
+            f"<div class='prev-winner-box'>"
+            f"<div><div class='prev-winner-label'>✅ 저장된 1번째 당첨자</div>"
+            f"<div class='prev-winner-number'>{format_phone8(w['phone'])}</div>"
+            f"<div class='prev-winner-name'>( {w['name']} 님 )</div></div>"
+            f"<div style='color:#ffd700;font-size:1.8rem;'>🥇</div>"
+            f"</div>",
+            unsafe_allow_html=True,
         )
 
     # ── 1등 추첨 처리 ─────────────────────────────────────────────
@@ -196,28 +218,46 @@ if st.session_state.loaded and st.session_state.participants:
         excl = {w["phone"] for w in fw + sw}
         pool = [x for x in p if x["phone"] not in excl]
         if pool:
+            if st.session_state.saved_winner:
+                w = st.session_state.saved_winner
+                st.markdown(
+                    f"<div class='prev-winner-box'>"
+                    f"<div><div class='prev-winner-label'>✅ 저장된 1번째 당첨자</div>"
+                    f"<div class='prev-winner-number'>{format_phone8(w['phone'])}</div>"
+                    f"<div class='prev-winner-name'>( {w['name']} 님 )</div></div>"
+                    f"<div style='color:#ffd700;font-size:1.8rem;'>🥇</div>"
+                    f"</div>",
+                    unsafe_allow_html=True,
+                )
+
             winner = random.choice(pool)
             st.session_state.first_winners.append(winner)
-            fw = st.session_state.first_winners
-            round_no = len(fw)
+            round_no = len(st.session_state.first_winners)
 
-            st.markdown(f"### 🥇 1등 {round_no}번째 추첨 중...")
+            if round_no == 1:
+                st.session_state.saved_winner = winner
+
+            st.markdown(f"### 🥇 {round_no}번째 추첨 중...")
             anim = st.empty()
-            for _ in range(36):          # ~2.2 초 롤링
+
+            # 점진적 감속: 빠름(1.0s) → 중간(1.6s) → 느림(2.2s), 총 ~4.8초
+            delays = [0.04] * 25 + [0.08] * 20 + [0.18] * 12
+            for delay in delays:
                 anim.markdown(
                     f"<div class='winner-box'>"
                     f"<div class='winner-number'>{random_phone8()}</div></div>",
                     unsafe_allow_html=True,
                 )
-                time.sleep(0.06)
+                time.sleep(delay)
+
             anim.markdown(
                 f"<div class='winner-box'>"
-                f"<div class='winner-number'>{format_phone8(winner['phone'])}</div></div>",
+                f"<div style='color:#aaa;font-size:0.9rem;margin-bottom:8px;'>🥇 {round_no}번째 당첨번호</div>"
+                f"<div class='winner-number'>{format_phone8(winner['phone'])}</div>"
+                f"<div class='winner-name'>🎉 {winner['name']} 님 당첨! 🎉</div>"
+                f"</div>",
                 unsafe_allow_html=True,
             )
-            st.success(f"🎉 {winner['name']} 님 당첨!")
-            time.sleep(1.5)
-            st.rerun()
 
     # ── 2등 추첨 처리 ─────────────────────────────────────────────
     if btn_2nd:
@@ -228,16 +268,16 @@ if st.session_state.loaded and st.session_state.participants:
         st.session_state.second_winners = shuffled[: min(50, len(shuffled))]
         st.rerun()
 
-    # ── 1등 결과 표시 ─────────────────────────────────────────────
-    if fw:
+    # ── 1등 결과 기록 표시 ────────────────────────────────────────
+    if fw and not btn_1st:
         st.markdown("---")
         st.subheader("🥇 1등 당첨자")
         for i, w in enumerate(fw):
             st.markdown(
                 f"<div class='winner-box'>"
-                f"<div style='color:#aaa;font-size:0.9rem;margin-bottom:6px;'>{i+1}번째 당첨번호</div>"
+                f"<div style='color:#aaa;font-size:0.9rem;margin-bottom:8px;'>{i+1}번째 당첨번호</div>"
                 f"<div class='winner-number'>{format_phone8(w['phone'])}</div>"
-                f"<div style='color:#6ee7b7;margin-top:6px;'>( {w['name']} 님 )</div>"
+                f"<div class='winner-name'>( {w['name']} 님 )</div>"
                 f"</div>",
                 unsafe_allow_html=True,
             )
@@ -249,7 +289,7 @@ if st.session_state.loaded and st.session_state.participants:
         cols_per_row = 5
         for i in range(0, len(sw), cols_per_row):
             cols = st.columns(cols_per_row)
-            for j, w in enumerate(sw[i : i + cols_per_row]):
+            for j, w in enumerate(sw[i: i + cols_per_row]):
                 cols[j].markdown(
                     f"<div class='phone-chip'>{format_phone4(w['phone'])}</div>",
                     unsafe_allow_html=True,
@@ -264,8 +304,7 @@ if st.session_state.loaded and st.session_state.participants:
         for i, w in enumerate(sw):
             rows.append({"등수": f"2등 ({i+1}번)", "성명": w["name"], "전화번호": format_phone_full(w["phone"])})
 
-        result_df = pd.DataFrame(rows)
-        csv_bytes = result_df.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
+        csv_bytes = pd.DataFrame(rows).to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
         today = datetime.now().strftime("%Y%m%d")
 
         dl_col, reset_col = st.columns(2)
@@ -281,5 +320,6 @@ if st.session_state.loaded and st.session_state.participants:
             if st.button("🔄 전체 초기화", use_container_width=True):
                 for key in ("participants", "first_winners", "second_winners"):
                     st.session_state[key] = []
+                st.session_state.saved_winner = None
                 st.session_state.loaded = False
                 st.rerun()
