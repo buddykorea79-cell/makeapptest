@@ -5,80 +5,222 @@ import time
 import io
 from datetime import datetime
 
-st.set_page_config(page_title="🎁 경품 추첨", page_icon="🎁", layout="centered")
+st.set_page_config(
+    page_title="🎁 경품 추첨",
+    page_icon="🎁",
+    layout="wide",
+)
 
 st.markdown("""
 <style>
-.stat-box {
-    background: #1a1a3a;
-    border: 1px solid #3a3a6a;
-    border-radius: 10px;
-    padding: 14px;
-    text-align: center;
+/* ── 전체 배경 ── */
+[data-testid="stAppViewContainer"] {
+    background: linear-gradient(135deg, #06061a 0%, #0d0d2b 50%, #06061a 100%);
+    min-height: 100vh;
 }
-.stat-box .label { color: #9ca3af; font-size: 0.85rem; }
-.stat-box .value { color: #e5e7eb; font-size: 1.6rem; font-weight: 700; }
+[data-testid="stHeader"] { background: transparent; }
+[data-testid="block-container"] { padding-top: 2rem; max-width: 1300px; }
 
-.winner-box-highlight {
-    background: #0d0d22;
+/* ── 타이틀 ── */
+.main-title {
+    text-align: center;
+    font-size: 3rem;
+    font-weight: 900;
+    background: linear-gradient(90deg, #ffd700, #fff5cc, #ffd700);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 4px;
+    margin-bottom: 4px;
+}
+.main-subtitle {
+    text-align: center;
+    color: #6b7280;
+    font-size: 1rem;
+    letter-spacing: 2px;
+    margin-bottom: 0;
+}
+
+/* ── 구분선 ── */
+.fancy-divider {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #ffd70055, transparent);
+    margin: 24px 0;
+}
+
+/* ── 통계 카드 ── */
+.stat-card {
+    background: linear-gradient(135deg, #12122e, #1a1a3e);
+    border: 1px solid #2a2a5a;
+    border-radius: 16px;
+    padding: 20px 10px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #ffd700, transparent);
+}
+.stat-card .s-label { color: #8892a4; font-size: 0.9rem; letter-spacing: 1px; }
+.stat-card .s-value { color: #f1f5f9; font-size: 2.2rem; font-weight: 900; margin-top: 4px; }
+
+/* ── 버튼 ── */
+.stButton > button {
+    background: linear-gradient(135deg, #1e1e4a, #2a2a6a) !important;
+    color: #e5e7eb !important;
+    border: 1px solid #4a4a8a !important;
+    border-radius: 12px !important;
+    padding: 14px !important;
+    font-size: 1.05rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 1px !important;
+    transition: all 0.2s !important;
+}
+.stButton > button:hover:not([disabled]) {
+    background: linear-gradient(135deg, #2a2a6a, #3a3a9a) !important;
+    border-color: #ffd700 !important;
+    box-shadow: 0 0 18px rgba(255,215,0,0.2) !important;
+    transform: translateY(-1px) !important;
+}
+.stButton > button[disabled] {
+    opacity: 0.35 !important;
+    cursor: not-allowed !important;
+}
+
+/* ── 1등 당첨 박스 - 강조 (최근) ── */
+.winner-highlight {
+    background: linear-gradient(135deg, #0d0d22, #181830);
     border: 2px solid #ffd700;
+    border-radius: 20px;
+    padding: 36px 24px;
+    text-align: center;
+    margin: 12px 0;
+    box-shadow: 0 0 40px rgba(255,215,0,0.15), inset 0 0 40px rgba(255,215,0,0.03);
+    position: relative;
+    overflow: hidden;
+}
+.winner-highlight::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(ellipse at center, rgba(255,215,0,0.04) 0%, transparent 60%);
+    pointer-events: none;
+}
+/* ── 1등 당첨 박스 - 이전 ── */
+.winner-prev {
+    background: linear-gradient(135deg, #0d0d1e, #121228);
+    border: 1px solid #2a2a4a;
     border-radius: 16px;
-    padding: 28px 20px;
+    padding: 22px 20px;
     text-align: center;
     margin: 10px 0;
-    box-shadow: 0 0 20px rgba(255,215,0,0.2);
 }
-.winner-box-prev {
-    background: #0d0d22;
-    border: 1px solid #4a4a6a;
-    border-radius: 16px;
-    padding: 20px;
-    text-align: center;
-    margin: 10px 0;
-}
-.winner-box-anim {
-    background: #0d0d22;
+
+/* ── 애니메이션 박스 ── */
+.winner-anim {
+    background: linear-gradient(135deg, #0d0d22, #181830);
     border: 2px solid #ffd700;
-    border-radius: 16px;
-    padding: 28px 20px;
+    border-radius: 20px;
+    padding: 36px 24px;
     text-align: center;
-    margin: 10px 0;
+    margin: 12px 0;
+    box-shadow: 0 0 40px rgba(255,215,0,0.2);
 }
-.winner-number-lg {
-    font-size: 3.4rem;
+
+/* ── 번호 텍스트 ── */
+.num-xl {
+    font-size: 4rem;
     font-weight: 900;
     color: #ffd700;
     font-family: 'Courier New', monospace;
+    letter-spacing: 8px;
+    text-shadow: 0 0 40px rgba(255,215,0,0.8);
+    line-height: 1.1;
+}
+.num-lg {
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: #8892a4;
+    font-family: 'Courier New', monospace;
     letter-spacing: 5px;
-    text-shadow: 0 0 30px rgba(255,215,0,0.7);
+    line-height: 1.2;
 }
-.winner-number-sm {
-    font-size: 2rem;
-    font-weight: 900;
-    color: #a0a0c0;
-    font-family: 'Courier New', monospace;
-    letter-spacing: 3px;
-}
-.winner-name-lg { font-size: 1.1rem; color: #6ee7b7; margin-top: 10px; }
-.winner-name-sm { font-size: 0.95rem; color: #6b7280; margin-top: 6px; }
-.round-label-lg { color: #aaa; font-size: 0.9rem; margin-bottom: 8px; }
-.round-label-sm { color: #6b7280; font-size: 0.8rem; margin-bottom: 6px; }
+.name-xl { font-size: 1.3rem; color: #6ee7b7; margin-top: 14px; font-weight: 600; letter-spacing: 2px; }
+.name-lg { font-size: 1rem; color: #4b5563; margin-top: 8px; letter-spacing: 1px; }
+.round-xl { color: #aab0bd; font-size: 1rem; margin-bottom: 12px; letter-spacing: 3px; font-weight: 500; }
+.round-lg { color: #4b5563; font-size: 0.85rem; margin-bottom: 8px; letter-spacing: 2px; }
 
-.phone-chip {
-    display: inline-block;
-    background: #1a1a3a;
-    border: 1px solid #3a3a6a;
-    border-radius: 8px;
-    padding: 8px 4px;
-    text-align: center;
-    font-size: 0.95rem;
-    font-family: 'Courier New', monospace;
-    color: #d1d5db;
-    font-weight: 600;
-    width: 100%;
-    margin: 2px 0;
+/* ── 2등 그리드 ── */
+.second-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-top: 8px;
 }
-.stButton > button { font-weight: 600; }
+.phone-chip {
+    background: linear-gradient(135deg, #12122e, #1a1a40);
+    border: 1px solid #2e2e5e;
+    border-radius: 12px;
+    padding: 16px 8px;
+    text-align: center;
+    font-size: 1.4rem;
+    font-family: 'Courier New', monospace;
+    color: #c8d0e0;
+    font-weight: 700;
+    letter-spacing: 3px;
+    transition: all 0.2s;
+}
+.phone-chip:hover {
+    border-color: #5a5a9a;
+    background: linear-gradient(135deg, #1a1a3e, #22224e);
+}
+
+/* ── 다운로드 버튼 ── */
+[data-testid="stDownloadButton"] > button {
+    background: linear-gradient(135deg, #1a3a1a, #1e4a1e) !important;
+    color: #6ee7b7 !important;
+    border: 1px solid #2a6a2a !important;
+    border-radius: 12px !important;
+    padding: 14px !important;
+    font-size: 1.05rem !important;
+    font-weight: 700 !important;
+}
+[data-testid="stDownloadButton"] > button:hover {
+    background: linear-gradient(135deg, #1e4a1e, #266026) !important;
+    box-shadow: 0 0 18px rgba(110,231,183,0.2) !important;
+}
+
+/* ── 업로드 영역 ── */
+[data-testid="stFileUploader"] {
+    background: #12122e !important;
+    border: 1px dashed #3a3a6a !important;
+    border-radius: 12px !important;
+}
+
+/* ── 성공 메시지 ── */
+[data-testid="stAlert"] {
+    background: #0d2010 !important;
+    border: 1px solid #1a4a20 !important;
+    border-radius: 10px !important;
+}
+
+/* ── 섹션 제목 ── */
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: 3px;
+    margin: 0 0 16px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #1e1e40;
+}
+.section-title-gold { color: #ffd700; }
+.section-title-silver { color: #a8b5c8; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -109,6 +251,13 @@ def random_phone8() -> str:
     r = lambda: random.randint(0, 9)
     return f"{r()}***-{r()}*{r()}{r()}"
 
+def build_second_grid(winners: list) -> str:
+    """2등 그리드 HTML (CSS grid 5열)"""
+    chips = ""
+    for w in winners:
+        chips += f"<div class='phone-chip'>{format_phone4(w['phone'])}</div>"
+    return f"<div class='second-grid'>{chips}</div>"
+
 
 # ─── 세션 초기화 ─────────────────────────────────────────────────
 defaults = {
@@ -117,7 +266,7 @@ defaults = {
     'second_winners': [],
     'loaded': False,
     'latest_round': None,
-    'file_key': '',      # ← 핵심: 파일 중복 처리 방지
+    'file_key': '',
 }
 for k, v in defaults.items():
     if k not in st.session_state:
@@ -125,19 +274,33 @@ for k, v in defaults.items():
 
 
 # ─── 제목 ────────────────────────────────────────────────────────
-st.title("🎁 경품 추첨")
-st.caption("CSV 파일을 업로드하고 1등(2회) → 2등(50명) 순서로 추첨하세요")
-st.markdown("---")
+st.markdown("<div class='main-title'>🎁 경품 추첨</div>", unsafe_allow_html=True)
+st.markdown("<div class='main-subtitle'>P R I Z E &nbsp; D R A W</div>", unsafe_allow_html=True)
+st.markdown("<hr class='fancy-divider'>", unsafe_allow_html=True)
 
 
 # ─── CSV 업로드 ──────────────────────────────────────────────────
-st.subheader("📋 참가자 CSV 업로드")
-st.caption("필수 열: **성명** (또는 이름/name), **전화번호** (또는 연락처/핸드폰/phone)")
+left_col, right_col = st.columns([2, 1])
+with left_col:
+    st.markdown("#### 📋 참가자 CSV 업로드")
+    st.caption("필수 열: **성명** (또는 이름/name)&nbsp;&nbsp;|&nbsp;&nbsp;**전화번호** (또는 연락처/핸드폰/phone)")
+    uploaded = st.file_uploader("CSV 파일 선택", type=["csv"], label_visibility="collapsed")
 
-uploaded = st.file_uploader("CSV 파일 선택", type=["csv"], label_visibility="collapsed")
+with right_col:
+    if st.session_state.loaded:
+        p_count = len(st.session_state.participants)
+        st.markdown(
+            f"<div style='background:linear-gradient(135deg,#0d2010,#122018);"
+            f"border:1px solid #1a5020;border-radius:14px;padding:20px;text-align:center;"
+            f"margin-top:28px;'>"
+            f"<div style='color:#6ee7b7;font-size:0.85rem;letter-spacing:2px;'>참가자 로드 완료</div>"
+            f"<div style='color:#f1f5f9;font-size:2.8rem;font-weight:900;'>{p_count}</div>"
+            f"<div style='color:#4b5563;font-size:0.85rem;'>명</div>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
 
 if uploaded is not None:
-    # 파일이 실제로 바뀔 때만 처리 (rerun 시 재처리 방지)
     file_key = f"{uploaded.name}_{uploaded.size}"
     if file_key != st.session_state.file_key:
         try:
@@ -149,7 +312,6 @@ if uploaded is not None:
                     break
                 except Exception:
                     continue
-
             if df is None:
                 st.error("파일 인코딩을 읽을 수 없습니다.")
             else:
@@ -168,21 +330,18 @@ if uploaded is not None:
                         phone = parse_phone(str(row[phone_col]))
                         if name and name != "nan" and len(phone) >= 8:
                             data.append({"name": name, "phone": phone})
-
                     if data:
                         st.session_state.participants = data
                         st.session_state.first_winners = []
                         st.session_state.second_winners = []
                         st.session_state.latest_round = None
                         st.session_state.loaded = True
-                        st.session_state.file_key = file_key  # 처리 완료 표시
+                        st.session_state.file_key = file_key
+                        st.rerun()
                     else:
                         st.error("유효한 참가자 데이터가 없습니다.")
         except Exception as e:
             st.error(f"파일 읽기 오류: {e}")
-
-if st.session_state.loaded:
-    st.success(f"✅ **{len(st.session_state.participants)}명** 로드 완료")
 
 
 # ─── 추첨 메인 영역 ──────────────────────────────────────────────
@@ -194,150 +353,163 @@ if st.session_state.loaded and st.session_state.participants:
     excluded  = {w["phone"] for w in fw + sw}
     remaining = [x for x in p if x["phone"] not in excluded]
 
-    st.markdown("---")
+    st.markdown("<hr class='fancy-divider'>", unsafe_allow_html=True)
 
-    # ── 통계 ─────────────────────────────────────────────────────
-    c1, c2, c3, c4 = st.columns(4)
+    # ── 통계 카드 ────────────────────────────────────────────────
+    s1, s2, s3, s4 = st.columns(4)
     for col, label, val in [
-        (c1, "전체",     len(p)),
-        (c2, "1등 당첨", len(fw)),
-        (c3, "2등 당첨", len(sw)),
-        (c4, "잔여",     len(remaining)),
+        (s1, "전 체", len(p)),
+        (s2, "1등 당첨", len(fw)),
+        (s3, "2등 당첨", len(sw)),
+        (s4, "잔 여", len(remaining)),
     ]:
         col.markdown(
-            f"<div class='stat-box'>"
-            f"<div class='label'>{label}</div>"
-            f"<div class='value'>{val}명</div>"
+            f"<div class='stat-card'>"
+            f"<div class='s-label'>{label}</div>"
+            f"<div class='s-value'>{val}</div>"
             f"</div>",
             unsafe_allow_html=True,
         )
 
-    st.markdown("---")
+    st.markdown("<hr class='fancy-divider'>", unsafe_allow_html=True)
 
     # ── 추첨 버튼 ────────────────────────────────────────────────
-    btn_col1, btn_col2 = st.columns(2)
-    with btn_col1:
+    bc1, bc2 = st.columns(2)
+    with bc1:
         btn_1st = st.button(
             "🥇 1등 추첨",
             disabled=(len(fw) >= 2),
             use_container_width=True,
         )
-    with btn_col2:
+    with bc2:
         btn_2nd = st.button(
             "🥈 2등 추첨 (50명)",
             disabled=(len(fw) < 2 or len(sw) > 0),
             use_container_width=True,
         )
 
-    # ── 1등 추첨 처리 ─────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════════
+    # 1등 추첨 애니메이션
+    # ══════════════════════════════════════════════════════════════
     if btn_1st and len(fw) < 2:
         pool = [x for x in p if x["phone"] not in {w["phone"] for w in fw + sw}]
-
         if pool:
             winner = random.choice(pool)
+            round_no = len(fw) + 1
 
-            # 애니메이션
             anim = st.empty()
-            delays = [0.04] * 25 + [0.08] * 20 + [0.18] * 12
+            delays = [0.04] * 25 + [0.07] * 20 + [0.15] * 15
             for delay in delays:
                 anim.markdown(
-                    f"<div class='winner-box-anim'>"
-                    f"<div class='winner-number-lg'>{random_phone8()}</div>"
+                    f"<div class='winner-anim'>"
+                    f"<div class='round-xl'>🥇 &nbsp; {round_no}번째 추첨 중...</div>"
+                    f"<div class='num-xl'>{random_phone8()}</div>"
                     f"</div>",
                     unsafe_allow_html=True,
                 )
                 time.sleep(delay)
 
-            # 결과 확정
-            round_no = len(fw) + 1
             anim.markdown(
-                f"<div class='winner-box-anim'>"
-                f"<div class='round-label-lg'>🥇 {round_no}번째 당첨번호</div>"
-                f"<div class='winner-number-lg'>{format_phone8(winner['phone'])}</div>"
-                f"<div class='winner-name-lg'>🎉 {winner['name']} 님 당첨! 🎉</div>"
+                f"<div class='winner-anim'>"
+                f"<div class='round-xl'>🥇 &nbsp; {round_no}번째 당첨번호</div>"
+                f"<div class='num-xl'>{format_phone8(winner['phone'])}</div>"
+                f"<div class='name-xl'>🎉 &nbsp; {winner['name']} 님 당첨! &nbsp; 🎉</div>"
                 f"</div>",
                 unsafe_allow_html=True,
             )
-            time.sleep(1.5)
+            time.sleep(2.0)
 
-            # 세션에 저장 후 rerun
             st.session_state.first_winners.append(winner)
             st.session_state.latest_round = len(st.session_state.first_winners)
             st.rerun()
 
-    # ── 2등 추첨 처리 ─────────────────────────────────────────────
+    # ══════════════════════════════════════════════════════════════
+    # 2등 추첨 - 한 줄씩 천천히 출력
+    # ══════════════════════════════════════════════════════════════
     if btn_2nd and len(fw) >= 2 and len(sw) == 0:
         pool = [x for x in p if x["phone"] not in {w["phone"] for w in fw}]
-        shuffled = pool.copy()
-        random.shuffle(shuffled)
-        st.session_state.second_winners = shuffled[:min(50, len(shuffled))]
+        random.shuffle(pool)
+        winners_50 = pool[:min(50, len(pool))]
+
+        st.markdown(
+            f"<div class='section-title section-title-silver'>"
+            f"🥈 &nbsp; 2등 당첨자 &nbsp; {len(winners_50)}명 &nbsp;— 전화번호 뒷 4자리"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+        grid_placeholder = st.empty()
+        COLS = 5
+        revealed = []
+
+        for i in range(0, len(winners_50), COLS):
+            row = winners_50[i: i + COLS]
+            revealed.extend(row)
+            grid_placeholder.markdown(build_second_grid(revealed), unsafe_allow_html=True)
+            time.sleep(0.4)
+
+        time.sleep(0.5)
+        st.session_state.second_winners = winners_50
         st.session_state.latest_round = None
         st.rerun()
 
-    # ════════════════════════════════════════════════════════════
-    # 누적 결과 표시: 추첨할 때마다 아래에 계속 쌓임
-    # ════════════════════════════════════════════════════════════
+    # ══════════════════════════════════════════════════════════════
+    # 누적 결과 표시 (rerun 이후 영구 렌더링)
+    # ══════════════════════════════════════════════════════════════
 
-    # ── 1등 당첨자 (누적) ─────────────────────────────────────────
+    # ── 1등 결과 ─────────────────────────────────────────────────
     if fw:
-        st.markdown("---")
-        st.subheader("🥇 1등 당첨자")
+        st.markdown("<hr class='fancy-divider'>", unsafe_allow_html=True)
+        st.markdown(
+            "<div class='section-title section-title-gold'>🥇 &nbsp; 1등 당첨자</div>",
+            unsafe_allow_html=True,
+        )
         latest = st.session_state.latest_round
 
-        for i, w in enumerate(fw):
+        cols_1st = st.columns(len(fw)) if len(fw) > 1 else [st.container()]
+        for i, (col, w) in enumerate(zip(cols_1st, fw)):
             round_no = i + 1
-            if latest == round_no:
-                # 가장 최근 추첨: 크게 + 금색 강조
-                st.markdown(
-                    f"<div class='winner-box-highlight'>"
-                    f"<div class='round-label-lg'>🥇 {round_no}번째 당첨번호</div>"
-                    f"<div class='winner-number-lg'>{format_phone8(w['phone'])}</div>"
-                    f"<div class='winner-name-lg'>🎉 {w['name']} 님 당첨! 🎉</div>"
-                    f"</div>",
-                    unsafe_allow_html=True,
-                )
-            else:
-                # 이전 추첨 결과: 작게 유지
-                st.markdown(
-                    f"<div class='winner-box-prev'>"
-                    f"<div class='round-label-sm'>🥇 {round_no}번째 당첨번호</div>"
-                    f"<div class='winner-number-sm'>{format_phone8(w['phone'])}</div>"
-                    f"<div class='winner-name-sm'>( {w['name']} 님 )</div>"
-                    f"</div>",
-                    unsafe_allow_html=True,
-                )
+            with col:
+                if latest == round_no:
+                    st.markdown(
+                        f"<div class='winner-highlight'>"
+                        f"<div class='round-xl'>🥇 &nbsp; {round_no}번째 당첨번호</div>"
+                        f"<div class='num-xl'>{format_phone8(w['phone'])}</div>"
+                        f"<div class='name-xl'>🎉 &nbsp; {w['name']} 님 &nbsp; 🎉</div>"
+                        f"</div>",
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    st.markdown(
+                        f"<div class='winner-prev'>"
+                        f"<div class='round-lg'>🥇 &nbsp; {round_no}번째 당첨번호</div>"
+                        f"<div class='num-lg'>{format_phone8(w['phone'])}</div>"
+                        f"<div class='name-lg'>( &nbsp; {w['name']} 님 &nbsp; )</div>"
+                        f"</div>",
+                        unsafe_allow_html=True,
+                    )
 
-    # ── 2등 당첨자: 뒷 4자리, 5열 × 10행 ─────────────────────────
+    # ── 2등 결과 ─────────────────────────────────────────────────
     if sw:
-        st.markdown("---")
-        st.subheader(f"🥈 2등 당첨자 ({len(sw)}명) — 전화번호 뒷 4자리")
-        COLS = 5
-        for i in range(0, len(sw), COLS):
-            cols = st.columns(COLS)
-            for j, w in enumerate(sw[i: i + COLS]):
-                cols[j].markdown(
-                    f"<div class='phone-chip'>{format_phone4(w['phone'])}</div>",
-                    unsafe_allow_html=True,
-                )
+        st.markdown("<hr class='fancy-divider'>", unsafe_allow_html=True)
+        st.markdown(
+            f"<div class='section-title section-title-silver'>"
+            f"🥈 &nbsp; 2등 당첨자 &nbsp; {len(sw)}명 &nbsp;— 전화번호 뒷 4자리"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(build_second_grid(sw), unsafe_allow_html=True)
 
-    # ── CSV 다운로드 & 초기화 ──────────────────────────────────────
+    # ── 다운로드 & 초기화 ─────────────────────────────────────────
     if fw or sw:
-        st.markdown("---")
+        st.markdown("<hr class='fancy-divider'>", unsafe_allow_html=True)
         total = len(fw) + len(sw)
 
         rows = []
         for i, w in enumerate(fw):
-            rows.append({
-                "등수": f"1등 ({i+1}번째)",
-                "성명": w["name"],
-                "전화번호": format_phone_full(w["phone"]),
-            })
+            rows.append({"등수": f"1등 ({i+1}번째)", "성명": w["name"], "전화번호": format_phone_full(w["phone"])})
         for i, w in enumerate(sw):
-            rows.append({
-                "등수": f"2등 ({i+1}번)",
-                "성명": w["name"],
-                "전화번호": format_phone_full(w["phone"]),
-            })
+            rows.append({"등수": f"2등 ({i+1}번)", "성명": w["name"], "전화번호": format_phone_full(w["phone"])})
 
         csv_bytes = (
             pd.DataFrame(rows)
@@ -349,14 +521,14 @@ if st.session_state.loaded and st.session_state.participants:
         dl_col, reset_col = st.columns(2)
         with dl_col:
             st.download_button(
-                label=f"⬇️ 당첨자 {total}명 전체 다운로드 (CSV)",
+                label=f"⬇️  당첨자 {total}명 전체 CSV 다운로드",
                 data=csv_bytes,
                 file_name=f"경품당첨자_{today}.csv",
                 mime="text/csv",
                 use_container_width=True,
             )
         with reset_col:
-            if st.button("🔄 전체 초기화", use_container_width=True):
+            if st.button("🔄  전체 초기화", use_container_width=True):
                 for k in ("participants", "first_winners", "second_winners"):
                     st.session_state[k] = []
                 st.session_state.latest_round = None
