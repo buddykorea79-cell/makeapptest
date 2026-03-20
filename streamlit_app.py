@@ -1,262 +1,285 @@
 import streamlit as st
-from st_supabase_connection import SupabaseConnection
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
+import random
+import time
+import io
+from datetime import datetime
 
-# 페이지 설정
-st.set_page_config(
-    page_title="Iris 데이터 대시보드",
-    page_icon="🌸",
-    layout="wide"
-)
+st.set_page_config(page_title="🎁 경품 추첨", page_icon="🎁", layout="centered")
 
-# 제목
-st.title("🌸 Iris 데이터 분석 대시보드")
+# ─── 스타일 ──────────────────────────────────────────────────────
+st.markdown("""
+<style>
+.stat-box {
+    background: #1a1a3a;
+    border: 1px solid #3a3a6a;
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+}
+.stat-box .label { color: #9ca3af; font-size: 0.85rem; }
+.stat-box .value { color: #e5e7eb; font-size: 1.6rem; font-weight: 700; }
+
+.winner-box {
+    background: #0d0d22;
+    border: 2px solid #2a2a5a;
+    border-radius: 14px;
+    padding: 20px;
+    text-align: center;
+    margin: 8px 0;
+}
+.winner-number {
+    font-size: 2.8rem;
+    font-weight: 900;
+    color: #ffd700;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 4px;
+    text-shadow: 0 0 20px rgba(255,215,0,0.5);
+}
+.phone-chip {
+    display: inline-block;
+    background: #1a1a3a;
+    border: 1px solid #3a3a6a;
+    border-radius: 8px;
+    padding: 8px 6px;
+    text-align: center;
+    font-size: 1rem;
+    font-family: 'Courier New', monospace;
+    color: #d1d5db;
+    font-weight: 600;
+    width: 100%;
+    margin: 2px 0;
+}
+.stButton > button {
+    width: 100%;
+    font-weight: 600;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ─── 유틸 함수 ───────────────────────────────────────────────────
+def parse_phone(phone: str) -> str:
+    return ''.join(c for c in str(phone) if c.isdigit())
+
+def format_phone8(phone: str) -> str:
+    d = parse_phone(phone)
+    last8 = d[-8:] if len(d) >= 8 else d
+    if len(last8) < 8:
+        return phone
+    return f"{last8[0]}***-{last8[4]}*{last8[6]}{last8[7]}"
+
+def format_phone4(phone: str) -> str:
+    return parse_phone(phone)[-4:]
+
+def format_phone_full(phone: str) -> str:
+    d = parse_phone(phone)
+    if len(d) == 11:
+        return f"{d[:3]}-{d[3:7]}-{d[7:]}"
+    if len(d) == 10:
+        return f"{d[:3]}-{d[3:6]}-{d[6:]}"
+    return phone
+
+def random_phone8() -> str:
+    r = lambda: random.randint(0, 9)
+    return f"{r()}***-{r()}*{r()}{r()}"
+
+# ─── 세션 초기화 ─────────────────────────────────────────────────
+for key, default in [
+    ('participants', []),
+    ('first_winners', []),
+    ('second_winners', []),
+    ('loaded', False),
+]:
+    if key not in st.session_state:
+        st.session_state[key] = default
+
+# ─── 제목 ────────────────────────────────────────────────────────
+st.title("🎁 경품 추첨")
+st.caption("CSV 파일을 업로드하고 1등 → 2등 순서로 추첨하세요")
+
 st.markdown("---")
 
-# Supabase 연결
-@st.cache_resource
-def init_connection():
-    return st.connection("supabase", type=SupabaseConnection)
+# ─── CSV 업로드 ──────────────────────────────────────────────────
+st.subheader("📋 참가자 CSV 업로드")
+st.caption("필수 열: **성명** (또는 이름/name), **전화번호** (또는 연락처/핸드폰/phone)")
 
-# 데이터 로드
-@st.cache_data(ttl=600)
-def load_data():
-    conn = init_connection()
-    response = conn.table("iris").select("*").execute()
-    return pd.DataFrame(response.data)
+uploaded = st.file_uploader("CSV 파일 선택", type=["csv"], label_visibility="collapsed")
 
-try:
-    # 데이터 로드
-    df = load_data()
-    
-    # 사이드바 - 필터
-    st.sidebar.header("📊 필터 옵션")
-    
-    # 종(species) 선택
-    species_list = df['Species'].unique().tolist()
-    selected_species = st.sidebar.multiselect(
-        "품종 선택",
-        species_list,
-        default=species_list
-    )
-    
-    # 데이터 필터링
-    filtered_df = df[df['Species'].isin(selected_species)]
-    
-    # 메트릭 표시
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric("총 데이터 수", len(filtered_df))
-    with col2:
-        st.metric("품종 수", filtered_df['Species'].nunique())
-    with col3:
-        st.metric("평균 꽃잎 길이", f"{filtered_df['PetalLengthCm'].mean():.2f} cm")
-    with col4:
-        st.metric("평균 꽃받침 길이", f"{filtered_df['SepalLengthCm'].mean():.2f} cm")
-    
+if uploaded:
+    try:
+        raw = uploaded.read()
+        for enc in ["utf-8-sig", "utf-8", "cp949", "euc-kr"]:
+            try:
+                df = pd.read_csv(io.BytesIO(raw), encoding=enc)
+                break
+            except Exception:
+                continue
+        else:
+            st.error("파일 인코딩을 읽을 수 없습니다.")
+            df = None
+
+        if df is not None:
+            name_col = next(
+                (c for c in df.columns if any(k in c for k in ["성명", "이름", "name", "Name"])),
+                None,
+            )
+            phone_col = next(
+                (c for c in df.columns if any(k in c for k in ["전화", "연락", "핸드폰", "phone", "Phone"])),
+                None,
+            )
+
+            if name_col is None or phone_col is None:
+                st.error(f"열을 찾을 수 없습니다. 헤더: {list(df.columns)}")
+            else:
+                data = []
+                for _, row in df.iterrows():
+                    name = str(row[name_col]).strip()
+                    phone = parse_phone(str(row[phone_col]))
+                    if name and name != "nan" and len(phone) >= 8:
+                        data.append({"name": name, "phone": phone})
+
+                if data:
+                    st.session_state.participants = data
+                    st.session_state.first_winners = []
+                    st.session_state.second_winners = []
+                    st.session_state.loaded = True
+                    st.success(f"✅ **{len(data)}명** 로드 완료")
+                else:
+                    st.error("유효한 참가자 데이터가 없습니다.")
+    except Exception as e:
+        st.error(f"파일 읽기 오류: {e}")
+
+# ─── 추첨 메인 영역 ──────────────────────────────────────────────
+if st.session_state.loaded and st.session_state.participants:
+    p  = st.session_state.participants
+    fw = st.session_state.first_winners
+    sw = st.session_state.second_winners
+
+    excluded  = {w["phone"] for w in fw + sw}
+    remaining = [x for x in p if x["phone"] not in excluded]
+
     st.markdown("---")
-    
-    # 탭 생성
-    tab1, tab2, tab3, tab4, tab5 = st.tabs(["📈 산점도", "📊 히스토그램", "📉 박스플롯", "🔥 히트맵", "📋 데이터"])
-    
-    # 탭 1: 산점도
-    with tab1:
-        st.subheader("산점도 분석")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            x_axis = st.selectbox(
-                "X축 선택",
-                ["SepalLengthCm", "SepalWidthCm", "PetalLengthCm", "PetalWidthCm"],
-                key="scatter_x"
-            )
-        
-        with col2:
-            y_axis = st.selectbox(
-                "Y축 선택",
-                ["SepalLengthCm", "SepalWidthCm", "PetalLengthCm", "PetalWidthCm"],
-                index=2,
-                key="scatter_y"
-            )
-        
-        # 산점도 그리기
-        fig_scatter = px.scatter(
-            filtered_df,
-            x=x_axis,
-            y=y_axis,
-            color="Species",
-            size="PetalWidthCm",
-            hover_data=["SepalLengthCm", "SepalWidthCm", "PetalLengthCm", "PetalWidthCm"],
-            title=f"{x_axis} vs {y_axis}",
-            color_discrete_sequence=px.colors.qualitative.Set2
+
+    # 통계
+    c1, c2, c3, c4 = st.columns(4)
+    for col, label, val in [
+        (c1, "전체",      len(p)),
+        (c2, "1등 당첨",  len(fw)),
+        (c3, "2등 당첨",  len(sw)),
+        (c4, "잔여",      len(remaining)),
+    ]:
+        col.markdown(
+            f"<div class='stat-box'><div class='label'>{label}</div>"
+            f"<div class='value'>{val}명</div></div>",
+            unsafe_allow_html=True,
         )
-        fig_scatter.update_layout(height=500)
-        st.plotly_chart(fig_scatter, use_container_width=True)
-    
-    # 탭 2: 히스토그램
-    with tab2:
-        st.subheader("분포 분석")
-        
-        feature = st.selectbox(
-            "특성 선택",
-            ["SepalLengthCm", "SepalWidthCm", "PetalLengthCm", "PetalWidthCm"],
-            key="hist_feature"
+
+    st.markdown("---")
+
+    # ── 추첨 버튼 ────────────────────────────────────────────────
+    btn_col1, btn_col2 = st.columns(2)
+    with btn_col1:
+        btn_1st = st.button(
+            "🥇 1등 추첨",
+            disabled=(len(fw) >= 2),
+            use_container_width=True,
         )
-        
-        fig_hist = px.histogram(
-            filtered_df,
-            x=feature,
-            color="Species",
-            marginal="box",
-            nbins=30,
-            title=f"{feature} 분포",
-            color_discrete_sequence=px.colors.qualitative.Set2
+    with btn_col2:
+        btn_2nd = st.button(
+            f"🥈 2등 추첨 (50명)",
+            disabled=(len(fw) < 2 or len(sw) > 0),
+            use_container_width=True,
         )
-        fig_hist.update_layout(height=500)
-        st.plotly_chart(fig_hist, use_container_width=True)
-    
-    # 탭 3: 박스플롯
-    with tab3:
-        st.subheader("박스플롯 분석")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            fig_box1 = px.box(
-                filtered_df,
-                x="Species",
-                y="SepalLengthCm",
-                color="Species",
-                title="꽃받침 길이 비교",
-                color_discrete_sequence=px.colors.qualitative.Set2
-            )
-            st.plotly_chart(fig_box1, use_container_width=True)
-            
-            fig_box2 = px.box(
-                filtered_df,
-                x="Species",
-                y="SepalWidthCm",
-                color="Species",
-                title="꽃받침 너비 비교",
-                color_discrete_sequence=px.colors.qualitative.Set2
-            )
-            st.plotly_chart(fig_box2, use_container_width=True)
-        
-        with col2:
-            fig_box3 = px.box(
-                filtered_df,
-                x="Species",
-                y="PetalLengthCm",
-                color="Species",
-                title="꽃잎 길이 비교",
-                color_discrete_sequence=px.colors.qualitative.Set2
-            )
-            st.plotly_chart(fig_box3, use_container_width=True)
-            
-            fig_box4 = px.box(
-                filtered_df,
-                x="Species",
-                y="PetalWidthCm",
-                color="Species",
-                title="꽃잎 너비 비교",
-                color_discrete_sequence=px.colors.qualitative.Set2
-            )
-            st.plotly_chart(fig_box4, use_container_width=True)
-    
-    # 탭 4: 히트맵
-    with tab4:
-        st.subheader("상관관계 분석")
-        
-        # 숫자형 컬럼만 선택
-        numeric_cols = ["SepalLengthCm", "SepalWidthCm", "PetalLengthCm", "PetalWidthCm"]
-        corr_matrix = filtered_df[numeric_cols].corr()
-        
-        fig_heatmap = go.Figure(data=go.Heatmap(
-            z=corr_matrix.values,
-            x=corr_matrix.columns,
-            y=corr_matrix.columns,
-            colorscale='RdBu',
-            zmid=0,
-            text=corr_matrix.values.round(2),
-            texttemplate='%{text}',
-            textfont={"size": 12},
-            colorbar=dict(title="상관계수")
-        ))
-        
-        fig_heatmap.update_layout(
-            title="특성 간 상관관계",
-            height=500
-        )
-        st.plotly_chart(fig_heatmap, use_container_width=True)
-        
-        # 품종별 평균 비교
-        st.subheader("품종별 평균 비교")
-        
-        avg_by_species = filtered_df.groupby('Species')[numeric_cols].mean().reset_index()
-        
-        fig_bar = go.Figure()
-        
-        for col in numeric_cols:
-            fig_bar.add_trace(go.Bar(
-                name=col,
-                x=avg_by_species['Species'],
-                y=avg_by_species[col],
-                text=avg_by_species[col].round(2),
-                textposition='auto',
-            ))
-        
-        fig_bar.update_layout(
-            title="품종별 특성 평균값",
-            barmode='group',
-            height=400,
-            xaxis_title="품종",
-            yaxis_title="평균값 (cm)"
-        )
-        st.plotly_chart(fig_bar, use_container_width=True)
-    
-    # 탭 5: 데이터 테이블
-    with tab5:
-        st.subheader("원본 데이터")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            st.write(f"**총 {len(filtered_df)}개의 데이터**")
-        with col2:
-            if st.button("CSV 다운로드"):
-                csv = filtered_df.to_csv(index=False, encoding='utf-8-sig')
-                st.download_button(
-                    label="📥 CSV 파일 다운로드",
-                    data=csv,
-                    file_name="iris_data.csv",
-                    mime="text/csv"
+
+    # ── 1등 추첨 처리 ─────────────────────────────────────────────
+    if btn_1st:
+        excl = {w["phone"] for w in fw + sw}
+        pool = [x for x in p if x["phone"] not in excl]
+        if pool:
+            winner = random.choice(pool)
+            st.session_state.first_winners.append(winner)
+            fw = st.session_state.first_winners
+            round_no = len(fw)
+
+            st.markdown(f"### 🥇 1등 {round_no}번째 추첨 중...")
+            anim = st.empty()
+            for _ in range(36):          # ~2.2 초 롤링
+                anim.markdown(
+                    f"<div class='winner-box'>"
+                    f"<div class='winner-number'>{random_phone8()}</div></div>",
+                    unsafe_allow_html=True,
                 )
-        
-        st.dataframe(filtered_df, use_container_width=True, height=400)
-        
-        # 통계 요약
-        st.subheader("통계 요약")
-        st.dataframe(filtered_df.describe(), use_container_width=True)
+                time.sleep(0.06)
+            anim.markdown(
+                f"<div class='winner-box'>"
+                f"<div class='winner-number'>{format_phone8(winner['phone'])}</div></div>",
+                unsafe_allow_html=True,
+            )
+            st.success(f"🎉 {winner['name']} 님 당첨!")
+            time.sleep(1.5)
+            st.rerun()
 
-except Exception as e:
-    st.error("⚠️ 데이터를 불러오는 중 오류가 발생했습니다.")
-    st.error(f"오류 내용: {str(e)}")
-    st.info("""
-    **해결 방법:**
-    1. `.streamlit/secrets.toml` 파일에 Supabase 인증 정보가 올바르게 설정되어 있는지 확인하세요.
-    2. Supabase에 'iris' 테이블이 존재하는지 확인하세요.
-    3. 테이블에 다음 컬럼이 있는지 확인하세요: SepalLengthCm, SepalWidthCm, PetalLengthCm, PetalWidthCm, Species
-    """)
+    # ── 2등 추첨 처리 ─────────────────────────────────────────────
+    if btn_2nd:
+        excl = {w["phone"] for w in st.session_state.first_winners}
+        pool = [x for x in p if x["phone"] not in excl]
+        shuffled = pool.copy()
+        random.shuffle(shuffled)
+        st.session_state.second_winners = shuffled[: min(50, len(shuffled))]
+        st.rerun()
 
-# 사이드바 정보
-st.sidebar.markdown("---")
-st.sidebar.info("""
-**대시보드 정보**
-- 데이터: Iris 데이터셋
-- 연결: Supabase
-- 시각화: Plotly
-- 프레임워크: Streamlit
-""")
+    # ── 1등 결과 표시 ─────────────────────────────────────────────
+    if fw:
+        st.markdown("---")
+        st.subheader("🥇 1등 당첨자")
+        for i, w in enumerate(fw):
+            st.markdown(
+                f"<div class='winner-box'>"
+                f"<div style='color:#aaa;font-size:0.9rem;margin-bottom:6px;'>{i+1}번째 당첨번호</div>"
+                f"<div class='winner-number'>{format_phone8(w['phone'])}</div>"
+                f"<div style='color:#6ee7b7;margin-top:6px;'>( {w['name']} 님 )</div>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+
+    # ── 2등 결과 표시 ─────────────────────────────────────────────
+    if sw:
+        st.markdown("---")
+        st.subheader(f"🥈 2등 당첨자 ({len(sw)}명) — 전화번호 뒷 4자리")
+        cols_per_row = 5
+        for i in range(0, len(sw), cols_per_row):
+            cols = st.columns(cols_per_row)
+            for j, w in enumerate(sw[i : i + cols_per_row]):
+                cols[j].markdown(
+                    f"<div class='phone-chip'>{format_phone4(w['phone'])}</div>",
+                    unsafe_allow_html=True,
+                )
+
+    # ── 다운로드 & 초기화 ─────────────────────────────────────────
+    if fw or sw:
+        st.markdown("---")
+        rows = []
+        for i, w in enumerate(fw):
+            rows.append({"등수": f"1등 ({i+1}번째)", "성명": w["name"], "전화번호": format_phone_full(w["phone"])})
+        for i, w in enumerate(sw):
+            rows.append({"등수": f"2등 ({i+1}번)", "성명": w["name"], "전화번호": format_phone_full(w["phone"])})
+
+        result_df = pd.DataFrame(rows)
+        csv_bytes = result_df.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
+        today = datetime.now().strftime("%Y%m%d")
+
+        dl_col, reset_col = st.columns(2)
+        with dl_col:
+            st.download_button(
+                label="⬇️ 결과 CSV 다운로드",
+                data=csv_bytes,
+                file_name=f"경품당첨자_{today}.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
+        with reset_col:
+            if st.button("🔄 전체 초기화", use_container_width=True):
+                for key in ("participants", "first_winners", "second_winners"):
+                    st.session_state[key] = []
+                st.session_state.loaded = False
+                st.rerun()
