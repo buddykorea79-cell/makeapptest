@@ -7,7 +7,6 @@ from datetime import datetime
 
 st.set_page_config(page_title="🎁 경품 추첨", page_icon="🎁", layout="centered")
 
-# ─── 스타일 ──────────────────────────────────────────────────────
 st.markdown("""
 <style>
 .stat-box {
@@ -83,6 +82,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+
 # ─── 유틸 함수 ───────────────────────────────────────────────────
 def parse_phone(phone: str) -> str:
     return ''.join(c for c in str(phone) if c.isdigit())
@@ -109,21 +109,26 @@ def random_phone8() -> str:
     r = lambda: random.randint(0, 9)
     return f"{r()}***-{r()}*{r()}{r()}"
 
+
 # ─── 세션 초기화 ─────────────────────────────────────────────────
-for key, default in [
-    ('participants', []),
-    ('first_winners', []),
-    ('second_winners', []),
-    ('loaded', False),
-    ('latest_round', None),
-]:
-    if key not in st.session_state:
-        st.session_state[key] = default
+defaults = {
+    'participants': [],
+    'first_winners': [],
+    'second_winners': [],
+    'loaded': False,
+    'latest_round': None,
+    'file_key': '',      # ← 핵심: 파일 중복 처리 방지
+}
+for k, v in defaults.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
+
 
 # ─── 제목 ────────────────────────────────────────────────────────
 st.title("🎁 경품 추첨")
 st.caption("CSV 파일을 업로드하고 1등(2회) → 2등(50명) 순서로 추첨하세요")
 st.markdown("---")
+
 
 # ─── CSV 업로드 ──────────────────────────────────────────────────
 st.subheader("📋 참가자 CSV 업로드")
@@ -131,45 +136,54 @@ st.caption("필수 열: **성명** (또는 이름/name), **전화번호** (또�
 
 uploaded = st.file_uploader("CSV 파일 선택", type=["csv"], label_visibility="collapsed")
 
-if uploaded:
-    try:
-        raw = uploaded.read()
-        df = None
-        for enc in ["utf-8-sig", "utf-8", "cp949", "euc-kr"]:
-            try:
-                df = pd.read_csv(io.BytesIO(raw), encoding=enc)
-                break
-            except Exception:
-                continue
-        if df is None:
-            st.error("파일 인코딩을 읽을 수 없습니다.")
-        else:
-            name_col = next(
-                (c for c in df.columns if any(k in c for k in ["성명", "이름", "name", "Name"])), None
-            )
-            phone_col = next(
-                (c for c in df.columns if any(k in c for k in ["전화", "연락", "핸드폰", "phone", "Phone"])), None
-            )
-            if name_col is None or phone_col is None:
-                st.error(f"열을 찾을 수 없습니다. 헤더: {list(df.columns)}")
+if uploaded is not None:
+    # 파일이 실제로 바뀔 때만 처리 (rerun 시 재처리 방지)
+    file_key = f"{uploaded.name}_{uploaded.size}"
+    if file_key != st.session_state.file_key:
+        try:
+            raw = uploaded.read()
+            df = None
+            for enc in ["utf-8-sig", "utf-8", "cp949", "euc-kr"]:
+                try:
+                    df = pd.read_csv(io.BytesIO(raw), encoding=enc)
+                    break
+                except Exception:
+                    continue
+
+            if df is None:
+                st.error("파일 인코딩을 읽을 수 없습니다.")
             else:
-                data = []
-                for _, row in df.iterrows():
-                    name = str(row[name_col]).strip()
-                    phone = parse_phone(str(row[phone_col]))
-                    if name and name != "nan" and len(phone) >= 8:
-                        data.append({"name": name, "phone": phone})
-                if data:
-                    st.session_state.participants = data
-                    st.session_state.first_winners = []
-                    st.session_state.second_winners = []
-                    st.session_state.latest_round = None
-                    st.session_state.loaded = True
-                    st.success(f"✅ **{len(data)}명** 로드 완료")
+                name_col = next(
+                    (c for c in df.columns if any(k in c for k in ["성명", "이름", "name", "Name"])), None
+                )
+                phone_col = next(
+                    (c for c in df.columns if any(k in c for k in ["전화", "연락", "핸드폰", "phone", "Phone"])), None
+                )
+                if name_col is None or phone_col is None:
+                    st.error(f"열을 찾을 수 없습니다. 헤더: {list(df.columns)}")
                 else:
-                    st.error("유효한 참가자 데이터가 없습니다.")
-    except Exception as e:
-        st.error(f"파일 읽기 오류: {e}")
+                    data = []
+                    for _, row in df.iterrows():
+                        name = str(row[name_col]).strip()
+                        phone = parse_phone(str(row[phone_col]))
+                        if name and name != "nan" and len(phone) >= 8:
+                            data.append({"name": name, "phone": phone})
+
+                    if data:
+                        st.session_state.participants = data
+                        st.session_state.first_winners = []
+                        st.session_state.second_winners = []
+                        st.session_state.latest_round = None
+                        st.session_state.loaded = True
+                        st.session_state.file_key = file_key  # 처리 완료 표시
+                    else:
+                        st.error("유효한 참가자 데이터가 없습니다.")
+        except Exception as e:
+            st.error(f"파일 읽기 오류: {e}")
+
+if st.session_state.loaded:
+    st.success(f"✅ **{len(st.session_state.participants)}명** 로드 완료")
+
 
 # ─── 추첨 메인 영역 ──────────────────────────────────────────────
 if st.session_state.loaded and st.session_state.participants:
@@ -191,8 +205,10 @@ if st.session_state.loaded and st.session_state.participants:
         (c4, "잔여",     len(remaining)),
     ]:
         col.markdown(
-            f"<div class='stat-box'><div class='label'>{label}</div>"
-            f"<div class='value'>{val}명</div></div>",
+            f"<div class='stat-box'>"
+            f"<div class='label'>{label}</div>"
+            f"<div class='value'>{val}명</div>"
+            f"</div>",
             unsafe_allow_html=True,
         )
 
@@ -214,28 +230,26 @@ if st.session_state.loaded and st.session_state.participants:
         )
 
     # ── 1등 추첨 처리 ─────────────────────────────────────────────
-    if btn_1st:
-        excl = {w["phone"] for w in fw + sw}
-        pool = [x for x in p if x["phone"] not in excl]
+    if btn_1st and len(fw) < 2:
+        pool = [x for x in p if x["phone"] not in {w["phone"] for w in fw + sw}]
 
         if pool:
             winner = random.choice(pool)
-            st.session_state.first_winners.append(winner)
-            round_no = len(st.session_state.first_winners)
 
-            st.markdown(f"### 🥇 {round_no}번째 추첨 중...")
+            # 애니메이션
             anim = st.empty()
-
-            # 점진적 감속 애니메이션 (총 ~4.8초)
             delays = [0.04] * 25 + [0.08] * 20 + [0.18] * 12
             for delay in delays:
                 anim.markdown(
                     f"<div class='winner-box-anim'>"
-                    f"<div class='winner-number-lg'>{random_phone8()}</div></div>",
+                    f"<div class='winner-number-lg'>{random_phone8()}</div>"
+                    f"</div>",
                     unsafe_allow_html=True,
                 )
                 time.sleep(delay)
 
+            # 결과 확정
+            round_no = len(fw) + 1
             anim.markdown(
                 f"<div class='winner-box-anim'>"
                 f"<div class='round-label-lg'>🥇 {round_no}번째 당첨번호</div>"
@@ -244,25 +258,27 @@ if st.session_state.loaded and st.session_state.participants:
                 f"</div>",
                 unsafe_allow_html=True,
             )
-            st.session_state.latest_round = round_no
             time.sleep(1.5)
+
+            # 세션에 저장 후 rerun
+            st.session_state.first_winners.append(winner)
+            st.session_state.latest_round = len(st.session_state.first_winners)
             st.rerun()
 
     # ── 2등 추첨 처리 ─────────────────────────────────────────────
-    if btn_2nd:
-        excl = {w["phone"] for w in st.session_state.first_winners}
-        pool = [x for x in p if x["phone"] not in excl]
+    if btn_2nd and len(fw) >= 2 and len(sw) == 0:
+        pool = [x for x in p if x["phone"] not in {w["phone"] for w in fw}]
         shuffled = pool.copy()
         random.shuffle(shuffled)
-        st.session_state.second_winners = shuffled[: min(50, len(shuffled))]
+        st.session_state.second_winners = shuffled[:min(50, len(shuffled))]
         st.session_state.latest_round = None
         st.rerun()
 
     # ════════════════════════════════════════════════════════════
-    # 누적 결과 표시
+    # 누적 결과 표시: 추첨할 때마다 아래에 계속 쌓임
     # ════════════════════════════════════════════════════════════
 
-    # ── 1등 당첨자 (누적, 최근 추첨은 크게 강조) ─────────────────
+    # ── 1등 당첨자 (누적) ─────────────────────────────────────────
     if fw:
         st.markdown("---")
         st.subheader("🥇 1등 당첨자")
@@ -271,6 +287,7 @@ if st.session_state.loaded and st.session_state.participants:
         for i, w in enumerate(fw):
             round_no = i + 1
             if latest == round_no:
+                # 가장 최근 추첨: 크게 + 금색 강조
                 st.markdown(
                     f"<div class='winner-box-highlight'>"
                     f"<div class='round-label-lg'>🥇 {round_no}번째 당첨번호</div>"
@@ -280,6 +297,7 @@ if st.session_state.loaded and st.session_state.participants:
                     unsafe_allow_html=True,
                 )
             else:
+                # 이전 추첨 결과: 작게 유지
                 st.markdown(
                     f"<div class='winner-box-prev'>"
                     f"<div class='round-label-sm'>🥇 {round_no}번째 당첨번호</div>"
@@ -289,7 +307,7 @@ if st.session_state.loaded and st.session_state.participants:
                     unsafe_allow_html=True,
                 )
 
-    # ── 2등 당첨자: 뒷 4자리, 5열 × 10행 ────────────────────────
+    # ── 2등 당첨자: 뒷 4자리, 5열 × 10행 ─────────────────────────
     if sw:
         st.markdown("---")
         st.subheader(f"🥈 2등 당첨자 ({len(sw)}명) — 전화번호 뒷 4자리")
@@ -302,15 +320,24 @@ if st.session_state.loaded and st.session_state.participants:
                     unsafe_allow_html=True,
                 )
 
-    # ── 다운로드 & 초기화 ─────────────────────────────────────────
+    # ── CSV 다운로드 & 초기화 ──────────────────────────────────────
     if fw or sw:
         st.markdown("---")
         total = len(fw) + len(sw)
+
         rows = []
         for i, w in enumerate(fw):
-            rows.append({"등수": f"1등 ({i+1}번째)", "성명": w["name"], "전화번호": format_phone_full(w["phone"])})
+            rows.append({
+                "등수": f"1등 ({i+1}번째)",
+                "성명": w["name"],
+                "전화번호": format_phone_full(w["phone"]),
+            })
         for i, w in enumerate(sw):
-            rows.append({"등수": f"2등 ({i+1}번)", "성명": w["name"], "전화번호": format_phone_full(w["phone"])})
+            rows.append({
+                "등수": f"2등 ({i+1}번)",
+                "성명": w["name"],
+                "전화번호": format_phone_full(w["phone"]),
+            })
 
         csv_bytes = (
             pd.DataFrame(rows)
@@ -330,8 +357,9 @@ if st.session_state.loaded and st.session_state.participants:
             )
         with reset_col:
             if st.button("🔄 전체 초기화", use_container_width=True):
-                for key in ("participants", "first_winners", "second_winners"):
-                    st.session_state[key] = []
+                for k in ("participants", "first_winners", "second_winners"):
+                    st.session_state[k] = []
                 st.session_state.latest_round = None
                 st.session_state.loaded = False
+                st.session_state.file_key = ''
                 st.rerun()
