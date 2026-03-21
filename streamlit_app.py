@@ -52,13 +52,19 @@ st.markdown("""
 .main-title {
     font-size: 2.6rem;
     font-weight: 900;
+    letter-spacing: 4px;
+    margin-bottom: 6px;
+}
+.main-title .title-emoji {
+    -webkit-text-fill-color: initial;
+    background: none;
+}
+.main-title .title-text {
     background: linear-gradient(135deg, #b8860b 0%, #ffd700 45%, #b8860b 100%);
     background-size: 200% auto;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    letter-spacing: 4px;
-    margin-bottom: 6px;
     animation: shimmer 4s linear infinite;
 }
 @keyframes shimmer {
@@ -445,7 +451,7 @@ for k, v in defaults.items():
 # ─── 제목 ────────────────────────────────────────────────────────
 st.markdown(
     "<div class='title-wrap'>"
-    "<div class='main-title'>🎁 경품 추첨</div>"
+    "<div class='main-title'><span class='title-emoji'>🎁</span> <span class='title-text'>경품 추첨</span></div>"
     "<div class='main-subtitle'>P R I Z E &nbsp;&nbsp; D R A W</div>"
     "</div>",
     unsafe_allow_html=True,
