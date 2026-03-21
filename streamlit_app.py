@@ -198,7 +198,7 @@ st.markdown("""
     border-radius: 9px;
     padding: 8px 5px;
     text-align: center;
-    font-size: 1rem;
+    font-size: 1.5rem;          /* ← 1rem → 1.5rem (2단계 크게) */
     font-family: 'Courier New', monospace;
     color: #6a7498;
     font-weight: 700;
@@ -323,7 +323,7 @@ defaults = {
     'participants': [],
     'first_winners': [],
     'second_winners': [],
-    'excluded_phones': [],   # 부재 처리된 1등 전화번호
+    'excluded_phones': [],
     'loaded': False,
     'latest_round': None,
     'file_key': '',
@@ -482,6 +482,19 @@ if st.session_state.loaded and st.session_state.participants:
             st.session_state.first_winners.append(winner)
             st.session_state.latest_round = len(st.session_state.first_winners)
             st.rerun()
+        else:
+            if len(fw) == 0:
+                # 1번째 추첨인데 풀이 비어 있으면 처음부터 초기화
+                for k in ("participants", "first_winners", "second_winners", "excluded_phones"):
+                    st.session_state[k] = []
+                st.session_state.latest_round = None
+                st.session_state.loaded = False
+                st.session_state.file_key = ''
+                st.warning("추첨 가능한 참가자가 없습니다. 처음부터 다시 시작합니다.")
+                st.rerun()
+            else:
+                # 2번째 추첨인데 풀이 비어 있으면 1번째 당첨자 유지, 메시지만 표시
+                st.warning("추첨 가능한 참가자가 없습니다. 1번째 당첨자는 그대로 유지됩니다.")
 
     # ══════════════════════════════════════════════════════════════
     # 2등 추첨 - 한 명씩 아주 천천히 출력
@@ -504,7 +517,7 @@ if st.session_state.loaded and st.session_state.participants:
         for w in winners_50:
             revealed.append(w)
             grid_placeholder.markdown(build_second_grid(revealed), unsafe_allow_html=True)
-            time.sleep(0.5)   # 한 명씩 0.5초 간격
+            time.sleep(0.5)
 
         time.sleep(0.8)
         st.session_state.second_winners = winners_50
