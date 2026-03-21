@@ -13,116 +13,168 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-/* ── 전체 배경 ── */
+@import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800;900&display=swap');
+
+/* ── 전체 배경 (흰색) ── */
 [data-testid="stAppViewContainer"] {
-    background:
-        radial-gradient(ellipse at 15% 50%, rgba(100, 30, 180, 0.07) 0%, transparent 55%),
-        radial-gradient(ellipse at 85% 20%, rgba(255, 215, 0, 0.04) 0%, transparent 45%),
-        radial-gradient(ellipse at 55% 85%, rgba(30, 60, 180, 0.06) 0%, transparent 50%),
-        linear-gradient(160deg, #04040f 0%, #080818 45%, #050510 100%);
+    background: #f5f6fa;
     min-height: 100vh;
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
 }
 [data-testid="stHeader"] { background: transparent; }
-[data-testid="block-container"] { padding-top: 1.5rem; max-width: 1200px; }
+[data-testid="block-container"] { padding-top: 2rem; max-width: 1200px; }
 
-/* ── 타이틀 ── */
-.main-title {
+/* ── 타이틀 영역 ── */
+.title-wrap {
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 36px 32px 28px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.07);
     text-align: center;
-    font-size: 2.8rem;
+    border: 1px solid #eaecf4;
+    position: relative;
+    overflow: hidden;
+}
+.title-wrap::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #f7c948, #ffd700, #f7c948);
+    background-size: 200% auto;
+    animation: shimmer-bar 3s linear infinite;
+}
+@keyframes shimmer-bar {
+    0%   { background-position: 0% center; }
+    100% { background-position: 200% center; }
+}
+.main-title {
+    font-size: 2.6rem;
     font-weight: 900;
-    background: linear-gradient(90deg, #a06010, #ffd700, #fffbe0, #ffd700, #a06010);
-    background-size: 250% auto;
+    background: linear-gradient(135deg, #b8860b 0%, #ffd700 45%, #b8860b 100%);
+    background-size: 200% auto;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    letter-spacing: 6px;
-    margin-bottom: 4px;
-    animation: shimmer 5s linear infinite;
+    letter-spacing: 4px;
+    margin-bottom: 6px;
+    animation: shimmer 4s linear infinite;
 }
 @keyframes shimmer {
     0%   { background-position: 0% center; }
-    100% { background-position: 250% center; }
+    100% { background-position: 200% center; }
 }
 .main-subtitle {
-    text-align: center;
-    color: #2a304a;
-    font-size: 0.8rem;
+    color: #b0b8cc;
+    font-size: 0.75rem;
     letter-spacing: 10px;
-    margin-bottom: 0;
     text-transform: uppercase;
+    font-weight: 600;
 }
 
 /* ── 구분선 ── */
 .fancy-divider {
     border: none;
     height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,215,0,0.25), transparent);
-    margin: 18px 0;
+    background: linear-gradient(90deg, transparent, #e0e4f0, transparent);
+    margin: 20px 0;
+}
+.draw-divider {
+    border: none;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,215,0,0.35), transparent);
+    margin: 20px 0;
 }
 
-/* ── 통계 카드 ── */
+/* ── 흰 카드 래퍼 ── */
+.white-card {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 24px 28px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+    border: 1px solid #eaecf4;
+    margin-bottom: 16px;
+}
+
+/* ── 통계 카드 (밝은 버전) ── */
 .stat-card {
-    background: linear-gradient(145deg, rgba(16,16,44,0.85), rgba(12,12,34,0.9));
-    border: 1px solid rgba(255,215,0,0.08);
+    background: #ffffff;
+    border: 1px solid #eaecf4;
     border-radius: 18px;
-    padding: 18px 10px;
+    padding: 22px 10px;
     text-align: center;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
 }
+.stat-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.08); }
 .stat-card::before {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,215,0,0.4), transparent);
+    height: 3px;
+    background: linear-gradient(90deg, #ffd700, #f7c948);
+    border-radius: 18px 18px 0 0;
 }
-.stat-card .s-label { color: #404870; font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; }
-.stat-card .s-value { color: #d8dce8; font-size: 2rem; font-weight: 900; margin-top: 6px; }
+.stat-card .s-label {
+    color: #a0a8c0;
+    font-size: 0.72rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 700;
+}
+.stat-card .s-value {
+    color: #1a2040;
+    font-size: 2.2rem;
+    font-weight: 900;
+    margin-top: 6px;
+    line-height: 1;
+}
 
-/* ── 버튼 ── */
+/* ── 메인 버튼 ── */
 .stButton > button {
-    background: linear-gradient(145deg, #0e0e30, #16164a) !important;
-    color: #a8aec8 !important;
-    border: 1px solid rgba(60,60,130,0.5) !important;
+    background: #ffffff !important;
+    color: #2a3060 !important;
+    border: 1.5px solid #d8dcee !important;
     border-radius: 14px !important;
     padding: 14px !important;
     font-size: 1rem !important;
     font-weight: 700 !important;
-    letter-spacing: 1.5px !important;
-    transition: all 0.25s ease !important;
-    box-shadow: 0 4px 18px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04) !important;
+    letter-spacing: 1px !important;
+    transition: all 0.22s ease !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
 }
 .stButton > button:hover:not([disabled]) {
-    background: linear-gradient(145deg, #18184a, #222270) !important;
-    border-color: rgba(255,215,0,0.45) !important;
-    box-shadow: 0 0 28px rgba(255,215,0,0.12), 0 6px 20px rgba(0,0,0,0.4) !important;
+    background: linear-gradient(135deg, #fffbea, #fff8d0) !important;
+    border-color: #ffd700 !important;
+    box-shadow: 0 4px 20px rgba(255,215,0,0.2), 0 2px 8px rgba(0,0,0,0.06) !important;
     transform: translateY(-2px) !important;
-    color: #e8d080 !important;
+    color: #8b6c00 !important;
 }
 .stButton > button[disabled] {
-    opacity: 0.2 !important;
+    opacity: 0.35 !important;
     cursor: not-allowed !important;
 }
 
 /* ── 1등 당첨 박스 - 강조 (최근) ── */
 .winner-highlight {
-    background: linear-gradient(145deg, #080818, #10102a);
-    border: 2px solid rgba(255,215,0,0.5);
+    background: linear-gradient(145deg, #07071a, #0f0f28);
+    border: 2px solid rgba(255,215,0,0.55);
     border-radius: 28px;
     padding: 80px 40px 70px;
     text-align: center;
     margin: 10px 0 6px;
-    min-height: 420px;
+    min-height: 440px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     box-shadow:
-        0 0 100px rgba(255,215,0,0.12),
-        0 24px 60px rgba(0,0,0,0.7),
-        inset 0 1px 0 rgba(255,215,0,0.12);
+        0 0 80px rgba(255,215,0,0.10),
+        0 24px 60px rgba(0,0,0,0.25),
+        inset 0 1px 0 rgba(255,215,0,0.15);
     position: relative;
     overflow: hidden;
 }
@@ -131,7 +183,7 @@ st.markdown("""
     position: absolute;
     top: -60%; left: -60%;
     width: 220%; height: 220%;
-    background: radial-gradient(ellipse at center, rgba(255,215,0,0.04) 0%, transparent 65%);
+    background: radial-gradient(ellipse at center, rgba(255,215,0,0.045) 0%, transparent 65%);
     pointer-events: none;
 }
 .winner-highlight::after {
@@ -139,39 +191,39 @@ st.markdown("""
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 2px;
-    background: linear-gradient(90deg, transparent, rgba(255,215,0,0.5), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255,215,0,0.6), transparent);
 }
 
 /* ── 1등 당첨 박스 - 이전 ── */
 .winner-prev {
-    background: linear-gradient(145deg, #060614, #0a0a1e);
-    border: 1px solid rgba(30,30,65,0.9);
-    border-radius: 22px;
+    background: linear-gradient(145deg, #060614, #0a0a20);
+    border: 1px solid rgba(40,40,80,0.9);
+    border-radius: 24px;
     padding: 50px 24px 40px;
     text-align: center;
     margin: 10px 0 6px;
-    min-height: 320px;
+    min-height: 340px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.15);
 }
 
 /* ── 애니메이션 박스 ── */
 .winner-anim {
-    background: linear-gradient(145deg, #080818, #12122e);
-    border: 2px solid rgba(255,215,0,0.55);
+    background: linear-gradient(145deg, #07071a, #10102c);
+    border: 2px solid rgba(255,215,0,0.6);
     border-radius: 28px;
     padding: 80px 40px;
     text-align: center;
     margin: 12px 0;
-    min-height: 420px;
+    min-height: 440px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 0 100px rgba(255,215,0,0.15), 0 24px 60px rgba(0,0,0,0.7);
+    box-shadow: 0 0 100px rgba(255,215,0,0.13), 0 24px 60px rgba(0,0,0,0.25);
 }
 
 /* ── 번호 텍스트 ── */
@@ -184,21 +236,21 @@ st.markdown("""
     background-clip: text;
     font-family: 'Courier New', monospace;
     letter-spacing: 12px;
-    filter: drop-shadow(0 0 40px rgba(255,215,0,0.6));
+    filter: drop-shadow(0 0 40px rgba(255,215,0,0.55));
     line-height: 1.1;
 }
 .num-lg {
     font-size: 3.5rem;
     font-weight: 800;
-    color: #383e5a;
+    color: #404870;
     font-family: 'Courier New', monospace;
     letter-spacing: 8px;
     line-height: 1.2;
 }
 .name-xl { font-size: 2.2rem; color: #4dd4bc; margin-top: 30px; font-weight: 700; letter-spacing: 6px; }
-.name-lg { font-size: 1.5rem; color: #2a3050; margin-top: 16px; letter-spacing: 3px; }
-.round-xl { color: #50587a; font-size: 1.2rem; margin-bottom: 28px; letter-spacing: 8px; font-weight: 700; text-transform: uppercase; }
-.round-lg { color: #2a3050; font-size: 1rem; margin-bottom: 18px; letter-spacing: 4px; }
+.name-lg { font-size: 1.5rem; color: #303858; margin-top: 16px; letter-spacing: 3px; }
+.round-xl { color: #5a6490; font-size: 1.2rem; margin-bottom: 28px; letter-spacing: 8px; font-weight: 700; text-transform: uppercase; }
+.round-lg { color: #303858; font-size: 1rem; margin-bottom: 18px; letter-spacing: 4px; }
 
 /* ── 2등 그리드 ── */
 .second-grid {
@@ -208,100 +260,124 @@ st.markdown("""
     margin-top: 6px;
 }
 .phone-chip {
-    background: linear-gradient(145deg, rgba(10,10,30,0.9), rgba(14,14,38,0.95));
-    border: 1px solid rgba(30,30,75,0.85);
-    border-radius: 9px;
-    padding: 10px 8px;
+    background: linear-gradient(145deg, #08082a, #0e0e38);
+    border: 1px solid rgba(40,40,90,0.9);
+    border-radius: 10px;
+    padding: 12px 8px;
     text-align: center;
     font-family: 'Courier New', monospace;
     font-weight: 700;
-    font-size: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    font-size: 1.45rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     transition: all 0.2s;
     white-space: nowrap;
 }
 .phone-chip:hover {
-    border-color: rgba(70,70,140,0.7);
+    border-color: rgba(255,215,0,0.3);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(255,215,0,0.08);
 }
-.chip-name {
-    color: #4dd4bc;
-}
-.chip-phone {
-    color: #6a7498;
-    letter-spacing: 3px;
-}
+.chip-name { color: #4dd4bc; }
+.chip-phone { color: #6070a0; letter-spacing: 3px; }
 .phone-chip:hover .chip-name { color: #6ee8d0; }
-.phone-chip:hover .chip-phone { color: #9098b8; }
+.phone-chip:hover .chip-phone { color: #8090c0; }
 
 /* ── 다운로드 버튼 ── */
 [data-testid="stDownloadButton"] > button {
-    background: linear-gradient(145deg, #081a10, #0c2216) !important;
-    color: #3dcf7a !important;
-    border: 1px solid rgba(30,110,50,0.4) !important;
+    background: #ffffff !important;
+    color: #1a8a50 !important;
+    border: 1.5px solid #b8e8cc !important;
     border-radius: 14px !important;
     padding: 14px !important;
     font-size: 1rem !important;
     font-weight: 700 !important;
     letter-spacing: 1px !important;
-    box-shadow: 0 4px 18px rgba(0,0,0,0.4) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+    transition: all 0.22s ease !important;
 }
 [data-testid="stDownloadButton"] > button:hover {
-    background: linear-gradient(145deg, #0c2216, #10281a) !important;
-    box-shadow: 0 0 28px rgba(61,207,122,0.1), 0 6px 20px rgba(0,0,0,0.4) !important;
+    background: #f0faf5 !important;
+    border-color: #4caf80 !important;
+    box-shadow: 0 4px 18px rgba(76,175,80,0.15) !important;
     transform: translateY(-2px) !important;
 }
 
 /* ── 업로드 영역 ── */
 [data-testid="stFileUploader"] {
-    background: rgba(8,8,26,0.7) !important;
-    border: 1px dashed rgba(40,40,85,0.7) !important;
+    background: #fafbff !important;
+    border: 1.5px dashed #d0d4e8 !important;
     border-radius: 14px !important;
 }
 
 /* ── 섹션 제목 ── */
 .section-title {
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 800;
-    letter-spacing: 4px;
-    margin: 0 0 10px 0;
-    padding-bottom: 9px;
-    border-bottom: 1px solid rgba(20,20,55,0.9);
+    letter-spacing: 3px;
+    margin: 0 0 12px 0;
+    padding-bottom: 10px;
+    border-bottom: 1.5px solid #eaecf4;
     text-transform: uppercase;
 }
 .section-title-gold {
-    background: linear-gradient(90deg, #ffd700, #fff0b0);
+    background: linear-gradient(90deg, #b8860b, #ffd700, #b8860b);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
 }
-.section-title-silver { color: #606880; }
+.section-title-silver { color: #8090b0; }
+
+/* ── 업로드 카드 영역 ── */
+.upload-card-label {
+    color: #2a3060;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+.upload-card-hint {
+    color: #9098b8;
+    font-size: 0.8rem;
+    margin-bottom: 10px;
+}
 
 /* ── 참가자 로드 카드 ── */
 .loaded-card {
-    background: linear-gradient(145deg, rgba(6,22,12,0.85), rgba(8,26,14,0.9));
-    border: 1px solid rgba(30,100,45,0.3);
+    background: linear-gradient(145deg, #f0fff6, #e8f9f0);
+    border: 1.5px solid #b8e8cc;
     border-radius: 18px;
     padding: 20px;
     text-align: center;
-    margin-top: 8px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.02);
+    margin-top: 4px;
+    box-shadow: 0 2px 12px rgba(76,175,80,0.08);
 }
 
 /* ── 재추첨 버튼 래퍼 ── */
 .redraw-wrap .stButton > button {
-    background: linear-gradient(145deg, #1a0808, #260c0c) !important;
-    color: #c06060 !important;
-    border: 1px solid rgba(140,40,40,0.35) !important;
+    background: #fff8f8 !important;
+    color: #c05050 !important;
+    border: 1.5px solid #f0c8c8 !important;
     font-size: 0.82rem !important;
     padding: 8px !important;
     letter-spacing: 1px !important;
     margin-top: 6px !important;
+    box-shadow: none !important;
 }
 .redraw-wrap .stButton > button:hover:not([disabled]) {
-    background: linear-gradient(145deg, #260c0c, #341010) !important;
-    border-color: rgba(200,80,80,0.45) !important;
-    box-shadow: 0 0 20px rgba(200,80,80,0.1) !important;
-    color: #e08080 !important;
+    background: #fff0f0 !important;
+    border-color: #e08080 !important;
+    box-shadow: 0 2px 12px rgba(200,80,80,0.1) !important;
+    color: #a03030 !important;
+}
+
+/* ── 추첨 영역 구분 래퍼 ── */
+.draw-section {
+    background: linear-gradient(160deg, #07071a 0%, #0c0c24 100%);
+    border-radius: 24px;
+    padding: 28px 24px 24px;
+    margin: 16px 0;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,215,0,0.08);
 }
 </style>
 """, unsafe_allow_html=True)
@@ -367,16 +443,25 @@ for k, v in defaults.items():
 
 
 # ─── 제목 ────────────────────────────────────────────────────────
-st.markdown("<div class='main-title'>🎁 경품 추첨</div>", unsafe_allow_html=True)
-st.markdown("<div class='main-subtitle'>P R I Z E &nbsp;&nbsp; D R A W</div>", unsafe_allow_html=True)
-st.markdown("<hr class='fancy-divider'>", unsafe_allow_html=True)
+st.markdown(
+    "<div class='title-wrap'>"
+    "<div class='main-title'>🎁 경품 추첨</div>"
+    "<div class='main-subtitle'>P R I Z E &nbsp;&nbsp; D R A W</div>"
+    "</div>",
+    unsafe_allow_html=True,
+)
 
 
 # ─── CSV 업로드 ──────────────────────────────────────────────────
 left_col, right_col = st.columns([2, 1])
 with left_col:
-    st.markdown("#### 📋 참가자 CSV 업로드")
-    st.caption("필수 열: **성명** (또는 이름/name)&nbsp;&nbsp;|&nbsp;&nbsp;**전화번호** (또는 연락처/핸드폰/phone)")
+    st.markdown(
+        "<div class='white-card'>"
+        "<div class='upload-card-label'>📋 참가자 CSV 업로드</div>"
+        "<div class='upload-card-hint'>필수 열: <b>성명</b> (또는 이름/name) &nbsp;|&nbsp; <b>전화번호</b> (또는 연락처/핸드폰/phone)</div>"
+        "</div>",
+        unsafe_allow_html=True,
+    )
     uploaded = st.file_uploader("CSV 파일 선택", type=["csv"], label_visibility="collapsed")
 
 with right_col:
@@ -384,9 +469,9 @@ with right_col:
         p_count = len(st.session_state.participants)
         st.markdown(
             f"<div class='loaded-card'>"
-            f"<div style='color:#3dcf7a;font-size:0.75rem;letter-spacing:3px;text-transform:uppercase;'>참가자 로드 완료</div>"
-            f"<div style='color:#d8dce8;font-size:2.6rem;font-weight:900;margin:8px 0 4px;'>{p_count}</div>"
-            f"<div style='color:#1e3028;font-size:0.78rem;letter-spacing:2px;'>명</div>"
+            f"<div style='color:#1a8a50;font-size:0.72rem;letter-spacing:3px;font-weight:700;text-transform:uppercase;'>참가자 로드 완료</div>"
+            f"<div style='color:#1a2040;font-size:2.8rem;font-weight:900;margin:8px 0 4px;'>{p_count}</div>"
+            f"<div style='color:#70a888;font-size:0.78rem;letter-spacing:2px;font-weight:600;'>명</div>"
             f"</div>",
             unsafe_allow_html=True,
         )
@@ -528,7 +613,7 @@ if st.session_state.loaded and st.session_state.participants:
                 st.warning("추첨 가능한 참가자가 없습니다. 1번째 당첨자는 그대로 유지됩니다.")
 
     # ══════════════════════════════════════════════════════════════
-    # 2등 추첨 - 한 명씩 아주 천천히 출력
+    # 2등 추첨 - 한 명씩 천천히 출력
     # ══════════════════════════════════════════════════════════════
     if btn_2nd and len(fw) >= 2 and len(sw) == 0:
         pool = [x for x in p if x["phone"] not in ({w["phone"] for w in fw} | ex)]
@@ -536,9 +621,8 @@ if st.session_state.loaded and st.session_state.participants:
         winners_50 = pool[:min(50, len(pool))]
 
         st.markdown(
-            f"<div class='section-title section-title-silver'>"
-            f"🥈 &nbsp; 2등 당첨자 &nbsp; {len(winners_50)}명 &nbsp;— 이름 끝자리 / 뒷 4자리"
-            f"</div>",
+            f"<div class='draw-section'>"
+            f"<div class='section-title section-title-silver'>🥈 &nbsp; 2등 당첨자 {len(winners_50)}명 — 이름 끝자리 / 뒷 4자리</div>",
             unsafe_allow_html=True,
         )
 
@@ -549,6 +633,8 @@ if st.session_state.loaded and st.session_state.participants:
             revealed.append(w)
             grid_placeholder.markdown(build_second_grid(revealed), unsafe_allow_html=True)
             time.sleep(0.5)
+
+        st.markdown("</div>", unsafe_allow_html=True)
 
         time.sleep(0.8)
         st.session_state.second_winners = winners_50
@@ -591,7 +677,6 @@ if st.session_state.loaded and st.session_state.participants:
                         unsafe_allow_html=True,
                     )
 
-                # 부재자 재추첨 버튼 (2등 추첨 전에만)
                 if not sw:
                     st.markdown("<div class='redraw-wrap'>", unsafe_allow_html=True)
                     if st.button(
@@ -609,12 +694,12 @@ if st.session_state.loaded and st.session_state.participants:
     if sw:
         st.markdown("<hr class='fancy-divider'>", unsafe_allow_html=True)
         st.markdown(
-            f"<div class='section-title section-title-silver'>"
-            f"🥈 &nbsp; 2등 당첨자 &nbsp; {len(sw)}명 &nbsp;— 이름 끝자리 / 뒷 4자리"
-            f"</div>",
+            f"<div class='draw-section'>"
+            f"<div class='section-title section-title-silver'>🥈 &nbsp; 2등 당첨자 {len(sw)}명 — 이름 끝자리 / 뒷 4자리</div>",
             unsafe_allow_html=True,
         )
         st.markdown(build_second_grid(sw), unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
     # ── 다운로드 & 초기화 ─────────────────────────────────────────
     if fw or sw:
