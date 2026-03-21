@@ -560,9 +560,9 @@ if st.session_state.loaded and st.session_state.participants:
         total = len(fw) + len(sw)
         rows = []
         for i, w in enumerate(fw):
-            rows.append({"등수": f"1등 ({i+1}번째)", "성명": w["name"], "전화번호": format_phone_full(w["phone"])})
+            rows.append({"등수": f"1등 ({i+1}번째)", "성명": w["name"], "전화번호": f"'{format_phone_full(w['phone'])}"})
         for i, w in enumerate(sw):
-            rows.append({"등수": f"2등 ({i+1}번)", "성명": w["name"], "전화번호": format_phone_full(w["phone"])})
+            rows.append({"등수": f"2등 ({i+1}번)", "성명": w["name"], "전화번호": f"'{format_phone_full(w['phone'])}"})
         csv_bytes = (
             pd.DataFrame(rows)
             .to_csv(index=False, encoding="utf-8-sig")
