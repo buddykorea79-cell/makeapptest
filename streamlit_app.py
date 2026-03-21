@@ -302,7 +302,7 @@ def format_phone4(phone: str) -> str:
     return parse_phone(phone)[-4:]
 
 def format_name_last(name: str) -> str:
-    return name[-1] if name else ""
+    return f"**{name[-1]}" if name else ""
 
 def format_phone_full(phone: str) -> str:
     d = parse_phone(phone)
