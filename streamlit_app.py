@@ -188,28 +188,39 @@ st.markdown("""
 /* ── 2등 그리드 ── */
 .second-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 7px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
     margin-top: 6px;
 }
 .phone-chip {
     background: linear-gradient(145deg, rgba(10,10,30,0.9), rgba(14,14,38,0.95));
     border: 1px solid rgba(30,30,75,0.85);
     border-radius: 9px;
-    padding: 8px 5px;
+    padding: 10px 8px;
     text-align: center;
-    font-size: 1.5rem;          /* ← 1rem → 1.5rem (2단계 크게) */
     font-family: 'Courier New', monospace;
-    color: #6a7498;
     font-weight: 700;
-    letter-spacing: 3px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.35);
     transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 .phone-chip:hover {
     border-color: rgba(70,70,140,0.7);
-    color: #9098b8;
 }
+.chip-name {
+    font-size: 1.5rem;
+    color: #4dd4bc;
+    letter-spacing: 2px;
+}
+.chip-phone {
+    font-size: 1.5rem;
+    color: #6a7498;
+    letter-spacing: 3px;
+}
+.phone-chip:hover .chip-name { color: #6ee8d0; }
+.phone-chip:hover .chip-phone { color: #9098b8; }
 
 /* ── 다운로드 버튼 ── */
 [data-testid="stDownloadButton"] > button {
@@ -299,6 +310,12 @@ def format_phone8(phone: str) -> str:
 def format_phone4(phone: str) -> str:
     return parse_phone(phone)[-4:]
 
+def format_name_masked(name: str) -> str:
+    """이름 마지막 글자를 O로 마스킹"""
+    if len(name) <= 1:
+        return "O"
+    return name[:-1] + "O"
+
 def format_phone_full(phone: str) -> str:
     d = parse_phone(phone)
     if len(d) == 11:
@@ -314,7 +331,12 @@ def random_phone8() -> str:
 def build_second_grid(winners: list) -> str:
     chips = ""
     for w in winners:
-        chips += f"<div class='phone-chip'>{format_phone4(w['phone'])}</div>"
+        chips += (
+            f"<div class='phone-chip'>"
+            f"<span class='chip-name'>{format_name_masked(w['name'])}</span>"
+            f"<span class='chip-phone'>{format_phone4(w['phone'])}</span>"
+            f"</div>"
+        )
     return f"<div class='second-grid'>{chips}</div>"
 
 
@@ -484,7 +506,6 @@ if st.session_state.loaded and st.session_state.participants:
             st.rerun()
         else:
             if len(fw) == 0:
-                # 1번째 추첨인데 풀이 비어 있으면 처음부터 초기화
                 for k in ("participants", "first_winners", "second_winners", "excluded_phones"):
                     st.session_state[k] = []
                 st.session_state.latest_round = None
@@ -493,7 +514,6 @@ if st.session_state.loaded and st.session_state.participants:
                 st.warning("추첨 가능한 참가자가 없습니다. 처음부터 다시 시작합니다.")
                 st.rerun()
             else:
-                # 2번째 추첨인데 풀이 비어 있으면 1번째 당첨자 유지, 메시지만 표시
                 st.warning("추첨 가능한 참가자가 없습니다. 1번째 당첨자는 그대로 유지됩니다.")
 
     # ══════════════════════════════════════════════════════════════
@@ -506,7 +526,7 @@ if st.session_state.loaded and st.session_state.participants:
 
         st.markdown(
             f"<div class='section-title section-title-silver'>"
-            f"🥈 &nbsp; 2등 당첨자 &nbsp; {len(winners_50)}명 &nbsp;— 전화번호 뒷 4자리"
+            f"🥈 &nbsp; 2등 당첨자 &nbsp; {len(winners_50)}명 &nbsp;— 이름(O) / 뒷 4자리"
             f"</div>",
             unsafe_allow_html=True,
         )
@@ -560,7 +580,6 @@ if st.session_state.loaded and st.session_state.participants:
                         unsafe_allow_html=True,
                     )
 
-                # 부재자 재추첨 버튼 (2등 추첨 전에만)
                 if not sw:
                     st.markdown("<div class='redraw-wrap'>", unsafe_allow_html=True)
                     if st.button(
@@ -579,7 +598,7 @@ if st.session_state.loaded and st.session_state.participants:
         st.markdown("<hr class='fancy-divider'>", unsafe_allow_html=True)
         st.markdown(
             f"<div class='section-title section-title-silver'>"
-            f"🥈 &nbsp; 2등 당첨자 &nbsp; {len(sw)}명 &nbsp;— 전화번호 뒷 4자리"
+            f"🥈 &nbsp; 2등 당첨자 &nbsp; {len(sw)}명 &nbsp;— 이름(O) / 뒷 4자리"
             f"</div>",
             unsafe_allow_html=True,
         )
