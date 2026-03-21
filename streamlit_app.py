@@ -109,15 +109,20 @@ st.markdown("""
 /* ── 1등 당첨 박스 - 강조 (최근) ── */
 .winner-highlight {
     background: linear-gradient(145deg, #080818, #10102a);
-    border: 1px solid rgba(255,215,0,0.35);
-    border-radius: 22px;
-    padding: 32px 20px 24px;
+    border: 2px solid rgba(255,215,0,0.5);
+    border-radius: 28px;
+    padding: 80px 40px 70px;
     text-align: center;
     margin: 10px 0 6px;
+    min-height: 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     box-shadow:
-        0 0 60px rgba(255,215,0,0.07),
-        0 16px 40px rgba(0,0,0,0.6),
-        inset 0 1px 0 rgba(255,215,0,0.08);
+        0 0 100px rgba(255,215,0,0.12),
+        0 24px 60px rgba(0,0,0,0.7),
+        inset 0 1px 0 rgba(255,215,0,0.12);
     position: relative;
     overflow: hidden;
 }
@@ -126,64 +131,74 @@ st.markdown("""
     position: absolute;
     top: -60%; left: -60%;
     width: 220%; height: 220%;
-    background: radial-gradient(ellipse at center, rgba(255,215,0,0.025) 0%, transparent 65%);
+    background: radial-gradient(ellipse at center, rgba(255,215,0,0.04) 0%, transparent 65%);
     pointer-events: none;
 }
 .winner-highlight::after {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, rgba(255,215,0,0.35), transparent);
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255,215,0,0.5), transparent);
 }
 
 /* ── 1등 당첨 박스 - 이전 ── */
 .winner-prev {
     background: linear-gradient(145deg, #060614, #0a0a1e);
     border: 1px solid rgba(30,30,65,0.9);
-    border-radius: 18px;
-    padding: 20px 16px 14px;
+    border-radius: 22px;
+    padding: 50px 24px 40px;
     text-align: center;
     margin: 10px 0 6px;
+    min-height: 320px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     box-shadow: 0 4px 20px rgba(0,0,0,0.5);
 }
 
 /* ── 애니메이션 박스 ── */
 .winner-anim {
     background: linear-gradient(145deg, #080818, #12122e);
-    border: 1px solid rgba(255,215,0,0.45);
-    border-radius: 22px;
-    padding: 40px 24px;
+    border: 2px solid rgba(255,215,0,0.55);
+    border-radius: 28px;
+    padding: 80px 40px;
     text-align: center;
     margin: 12px 0;
-    box-shadow: 0 0 70px rgba(255,215,0,0.12), 0 20px 40px rgba(0,0,0,0.6);
+    min-height: 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 100px rgba(255,215,0,0.15), 0 24px 60px rgba(0,0,0,0.7);
 }
 
 /* ── 번호 텍스트 ── */
 .num-xl {
-    font-size: 3.4rem;
+    font-size: 7rem;
     font-weight: 900;
     background: linear-gradient(180deg, #fff8e0 0%, #ffd700 50%, #a07010 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
     font-family: 'Courier New', monospace;
-    letter-spacing: 8px;
-    filter: drop-shadow(0 0 28px rgba(255,215,0,0.5));
+    letter-spacing: 12px;
+    filter: drop-shadow(0 0 40px rgba(255,215,0,0.6));
     line-height: 1.1;
 }
 .num-lg {
-    font-size: 1.9rem;
+    font-size: 3.5rem;
     font-weight: 800;
-    color: #282e4a;
+    color: #383e5a;
     font-family: 'Courier New', monospace;
-    letter-spacing: 5px;
+    letter-spacing: 8px;
     line-height: 1.2;
 }
-.name-xl { font-size: 1.15rem; color: #4dd4bc; margin-top: 18px; font-weight: 600; letter-spacing: 3px; }
-.name-lg { font-size: 0.85rem; color: #1e2440; margin-top: 8px; letter-spacing: 1.5px; }
-.round-xl { color: #50587a; font-size: 0.8rem; margin-bottom: 16px; letter-spacing: 5px; font-weight: 600; text-transform: uppercase; }
-.round-lg { color: #1c2235; font-size: 0.75rem; margin-bottom: 10px; letter-spacing: 3px; }
+.name-xl { font-size: 2.2rem; color: #4dd4bc; margin-top: 30px; font-weight: 700; letter-spacing: 6px; }
+.name-lg { font-size: 1.5rem; color: #2a3050; margin-top: 16px; letter-spacing: 3px; }
+.round-xl { color: #50587a; font-size: 1.2rem; margin-bottom: 28px; letter-spacing: 8px; font-weight: 700; text-transform: uppercase; }
+.round-lg { color: #2a3050; font-size: 1rem; margin-bottom: 18px; letter-spacing: 4px; }
 
 /* ── 2등 그리드 ── */
 .second-grid {
@@ -341,7 +356,7 @@ defaults = {
     'participants': [],
     'first_winners': [],
     'second_winners': [],
-    'excluded_phones': [],   # 부재 처리된 1등 전화번호
+    'excluded_phones': [],
     'loaded': False,
     'latest_round': None,
     'file_key': '',
