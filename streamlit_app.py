@@ -200,22 +200,18 @@ st.markdown("""
     text-align: center;
     font-family: 'Courier New', monospace;
     font-weight: 700;
+    font-size: 1.5rem;
     box-shadow: 0 2px 8px rgba(0,0,0,0.35);
     transition: all 0.2s;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    white-space: nowrap;
 }
 .phone-chip:hover {
     border-color: rgba(70,70,140,0.7);
 }
 .chip-name {
-    font-size: 1.5rem;
     color: #4dd4bc;
-    letter-spacing: 2px;
 }
 .chip-phone {
-    font-size: 1.5rem;
     color: #6a7498;
     letter-spacing: 3px;
 }
@@ -310,11 +306,9 @@ def format_phone8(phone: str) -> str:
 def format_phone4(phone: str) -> str:
     return parse_phone(phone)[-4:]
 
-def format_name_masked(name: str) -> str:
-    """이름 마지막 글자를 O로 마스킹"""
-    if len(name) <= 1:
-        return "O"
-    return name[:-1] + "O"
+def format_name_last(name: str) -> str:
+    """이름 마지막 한 글자만 반환"""
+    return name[-1] if name else ""
 
 def format_phone_full(phone: str) -> str:
     d = parse_phone(phone)
@@ -333,7 +327,8 @@ def build_second_grid(winners: list) -> str:
     for w in winners:
         chips += (
             f"<div class='phone-chip'>"
-            f"<span class='chip-name'>{format_name_masked(w['name'])}</span>"
+            f"<span class='chip-name'>{format_name_last(w['name'])}</span>"
+            f"&nbsp;"
             f"<span class='chip-phone'>{format_phone4(w['phone'])}</span>"
             f"</div>"
         )
@@ -526,7 +521,7 @@ if st.session_state.loaded and st.session_state.participants:
 
         st.markdown(
             f"<div class='section-title section-title-silver'>"
-            f"🥈 &nbsp; 2등 당첨자 &nbsp; {len(winners_50)}명 &nbsp;— 이름(O) / 뒷 4자리"
+            f"🥈 &nbsp; 2등 당첨자 &nbsp; {len(winners_50)}명 &nbsp;— 이름 끝자리 / 뒷 4자리"
             f"</div>",
             unsafe_allow_html=True,
         )
@@ -598,7 +593,7 @@ if st.session_state.loaded and st.session_state.participants:
         st.markdown("<hr class='fancy-divider'>", unsafe_allow_html=True)
         st.markdown(
             f"<div class='section-title section-title-silver'>"
-            f"🥈 &nbsp; 2등 당첨자 &nbsp; {len(sw)}명 &nbsp;— 이름(O) / 뒷 4자리"
+            f"🥈 &nbsp; 2등 당첨자 &nbsp; {len(sw)}명 &nbsp;— 이름 끝자리 / 뒷 4자리"
             f"</div>",
             unsafe_allow_html=True,
         )
