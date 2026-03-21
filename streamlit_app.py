@@ -188,7 +188,7 @@ st.markdown("""
 /* ── 2등 그리드 ── */
 .second-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);   /* ← 5칸 */
+    grid-template-columns: repeat(5, 1fr);
     gap: 8px;
     margin-top: 6px;
 }
@@ -208,9 +208,14 @@ st.markdown("""
 .phone-chip:hover {
     border-color: rgba(70,70,140,0.7);
 }
-.chip-name  { color: #4dd4bc; }
-.chip-phone { color: #6a7498; letter-spacing: 3px; }
-.phone-chip:hover .chip-name  { color: #6ee8d0; }
+.chip-name {
+    color: #4dd4bc;
+}
+.chip-phone {
+    color: #6a7498;
+    letter-spacing: 3px;
+}
+.phone-chip:hover .chip-name { color: #6ee8d0; }
 .phone-chip:hover .chip-phone { color: #9098b8; }
 
 /* ── 다운로드 버튼 ── */
@@ -306,6 +311,8 @@ def format_name_last(name: str) -> str:
 
 def format_phone_full(phone: str) -> str:
     d = parse_phone(phone)
+    if len(d) == 10 and d[0] != '0':
+        d = '0' + d
     if len(d) == 11:
         return f"{d[:3]}-{d[3:7]}-{d[7:]}"
     if len(d) == 10:
@@ -334,7 +341,7 @@ defaults = {
     'participants': [],
     'first_winners': [],
     'second_winners': [],
-    'excluded_phones': [],
+    'excluded_phones': [],   # 부재 처리된 1등 전화번호
     'loaded': False,
     'latest_round': None,
     'file_key': '',
@@ -426,6 +433,7 @@ if st.session_state.loaded and st.session_state.participants:
 
     st.markdown("<hr class='fancy-divider'>", unsafe_allow_html=True)
 
+    # ── 통계 카드 ────────────────────────────────────────────────
     s1, s2, s3, s4 = st.columns(4)
     for col, label, val in [
         (s1, "전 체", len(p)),
@@ -443,17 +451,30 @@ if st.session_state.loaded and st.session_state.participants:
 
     st.markdown("<hr class='fancy-divider'>", unsafe_allow_html=True)
 
+    # ── 추첨 버튼 ────────────────────────────────────────────────
     bc1, bc2 = st.columns(2)
     with bc1:
-        btn_1st = st.button("🥇 1등 추첨", disabled=(len(fw) >= 2), use_container_width=True)
+        btn_1st = st.button(
+            "🥇 1등 추첨",
+            disabled=(len(fw) >= 2),
+            use_container_width=True,
+        )
     with bc2:
-        btn_2nd = st.button("🥈 2등 추첨 (50명)", disabled=(len(fw) < 2 or len(sw) > 0), use_container_width=True)
+        btn_2nd = st.button(
+            "🥈 2등 추첨 (50명)",
+            disabled=(len(fw) < 2 or len(sw) > 0),
+            use_container_width=True,
+        )
 
+    # ══════════════════════════════════════════════════════════════
+    # 1등 추첨 애니메이션
+    # ══════════════════════════════════════════════════════════════
     if btn_1st and len(fw) < 2:
         pool = [x for x in p if x["phone"] not in ({w["phone"] for w in fw + sw} | ex)]
         if pool:
             winner = random.choice(pool)
             round_no = len(fw) + 1
+
             anim = st.empty()
             delays = [0.04] * 25 + [0.07] * 20 + [0.15] * 15
             for delay in delays:
@@ -465,6 +486,7 @@ if st.session_state.loaded and st.session_state.participants:
                     unsafe_allow_html=True,
                 )
                 time.sleep(delay)
+
             anim.markdown(
                 f"<div class='winner-anim'>"
                 f"<div class='round-xl'>🥇 &nbsp; {round_no}번째 당첨번호</div>"
@@ -474,6 +496,7 @@ if st.session_state.loaded and st.session_state.participants:
                 unsafe_allow_html=True,
             )
             time.sleep(2.0)
+
             st.session_state.first_winners.append(winner)
             st.session_state.latest_round = len(st.session_state.first_winners)
             st.rerun()
@@ -489,31 +512,47 @@ if st.session_state.loaded and st.session_state.participants:
             else:
                 st.warning("추첨 가능한 참가자가 없습니다. 1번째 당첨자는 그대로 유지됩니다.")
 
+    # ══════════════════════════════════════════════════════════════
+    # 2등 추첨 - 한 명씩 아주 천천히 출력
+    # ══════════════════════════════════════════════════════════════
     if btn_2nd and len(fw) >= 2 and len(sw) == 0:
         pool = [x for x in p if x["phone"] not in ({w["phone"] for w in fw} | ex)]
         random.shuffle(pool)
         winners_50 = pool[:min(50, len(pool))]
+
         st.markdown(
             f"<div class='section-title section-title-silver'>"
             f"🥈 &nbsp; 2등 당첨자 &nbsp; {len(winners_50)}명 &nbsp;— 이름 끝자리 / 뒷 4자리"
             f"</div>",
             unsafe_allow_html=True,
         )
+
         grid_placeholder = st.empty()
         revealed = []
+
         for w in winners_50:
             revealed.append(w)
             grid_placeholder.markdown(build_second_grid(revealed), unsafe_allow_html=True)
             time.sleep(0.5)
+
         time.sleep(0.8)
         st.session_state.second_winners = winners_50
         st.session_state.latest_round = None
         st.rerun()
 
+    # ══════════════════════════════════════════════════════════════
+    # 누적 결과 표시 (rerun 이후 영구 렌더링)
+    # ══════════════════════════════════════════════════════════════
+
+    # ── 1등 결과 ─────────────────────────────────────────────────
     if fw:
         st.markdown("<hr class='fancy-divider'>", unsafe_allow_html=True)
-        st.markdown("<div class='section-title section-title-gold'>🥇 &nbsp; 1등 당첨자</div>", unsafe_allow_html=True)
+        st.markdown(
+            "<div class='section-title section-title-gold'>🥇 &nbsp; 1등 당첨자</div>",
+            unsafe_allow_html=True,
+        )
         latest = st.session_state.latest_round
+
         cols_1st = st.columns(len(fw)) if len(fw) > 1 else [st.container()]
         for i, (col, w) in enumerate(zip(cols_1st, fw)):
             round_no = i + 1
@@ -536,15 +575,22 @@ if st.session_state.loaded and st.session_state.participants:
                         f"</div>",
                         unsafe_allow_html=True,
                     )
+
+                # 부재자 재추첨 버튼 (2등 추첨 전에만)
                 if not sw:
                     st.markdown("<div class='redraw-wrap'>", unsafe_allow_html=True)
-                    if st.button(f"🔄 부재자 재추첨", key=f"redraw_{i}_{w['phone']}", use_container_width=True):
+                    if st.button(
+                        f"🔄 부재자 재추첨",
+                        key=f"redraw_{i}_{w['phone']}",
+                        use_container_width=True,
+                    ):
                         st.session_state.excluded_phones.append(w["phone"])
                         st.session_state.first_winners.pop(i)
                         st.session_state.latest_round = None
                         st.rerun()
                     st.markdown("</div>", unsafe_allow_html=True)
 
+    # ── 2등 결과 ─────────────────────────────────────────────────
     if sw:
         st.markdown("<hr class='fancy-divider'>", unsafe_allow_html=True)
         st.markdown(
@@ -555,20 +601,24 @@ if st.session_state.loaded and st.session_state.participants:
         )
         st.markdown(build_second_grid(sw), unsafe_allow_html=True)
 
+    # ── 다운로드 & 초기화 ─────────────────────────────────────────
     if fw or sw:
         st.markdown("<hr class='fancy-divider'>", unsafe_allow_html=True)
         total = len(fw) + len(sw)
+
         rows = []
         for i, w in enumerate(fw):
             rows.append({"등수": f"1등 ({i+1}번째)", "성명": w["name"], "전화번호": f"'{format_phone_full(w['phone'])}"})
         for i, w in enumerate(sw):
             rows.append({"등수": f"2등 ({i+1}번)", "성명": w["name"], "전화번호": f"'{format_phone_full(w['phone'])}"})
+
         csv_bytes = (
             pd.DataFrame(rows)
             .to_csv(index=False, encoding="utf-8-sig")
             .encode("utf-8-sig")
         )
         today = datetime.now().strftime("%Y%m%d")
+
         dl_col, reset_col = st.columns(2)
         with dl_col:
             st.download_button(
